@@ -230,5 +230,37 @@ const loadGoogleScript = () => {
   transform: rotateY(180deg);
 }
 
+.bg-dark {
+  background: #0f2027;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-dark::before,
+.bg-dark::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.6;
+}
+
+.bg-dark::before {
+  width: 400px;
+  height: 400px;
+  background: #21d4fd;
+  top: -100px;
+  left: -100px;
+}
+
+.bg-dark::after {
+  width: 500px;
+  height: 500px;
+  background: #b21f1f;
+  bottom: -150px;
+  right: -150px;
+}
+
+
 
 </style>
