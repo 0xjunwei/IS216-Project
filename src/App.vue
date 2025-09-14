@@ -20,6 +20,9 @@
               </div>
               <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
+            <div class="text-center mt-3">
+              <div id="google-btn"></div>
+            </div>
             <p class="text-center text-muted mt-3">
               Don’t have an account? 
               <a href="#" @click.prevent="flipCard" class="text-decoration-none">Register</a>
@@ -60,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted  } from 'vue'
 
 const isRegister = ref(false)
 const animateTitle = ref(true) // animates on first load
@@ -85,9 +88,14 @@ const triggerAnimation = async () => {
   }, 600) // match the .flip-card transition time
 }
 
-const flipCard = () => {
+const flipCard = async () => {
   isRegister.value = !isRegister.value
   triggerAnimation()
+
+  if (!isRegister.value) {
+    await nextTick()   // wait for DOM update
+    renderGoogleButton()
+  }
 }
 
 const handleLogin = () => {
@@ -102,9 +110,58 @@ const handleRegister = () => {
   alert(`Registering with: ${registerForm.value.email}`)
   flipCard()
 }
+
+const handleCredentialResponse = (response) => {
+  console.log("Google Credential:", response.credential)
+  alert("Signed in with Google successfully!")
+  // TODO: send token to backend
+}
+
+const renderGoogleButton = () => {
+  const btn = document.getElementById("google-btn")
+  if (btn && btn.childElementCount === 0) { // avoid duplicates
+    window.google?.accounts.id.renderButton(btn, {
+      theme: "outline",
+      size: "large",
+      width: "100%"
+    })
+  }
+}
+
+onMounted(async () => {
+  await loadGoogleScript()
+
+  window.google?.accounts.id.initialize({
+    // will fill in the client_id on my client side dont wish to leak
+    client_id: "xxx.apps.googleusercontent.com",
+    callback: handleCredentialResponse
+  })
+
+  renderGoogleButton()
+})
+
+const loadGoogleScript = () => {
+  return new Promise((resolve) => {
+    if (window.google && window.google.accounts) {
+      resolve()
+      return
+    }
+    const script = document.createElement("script")
+    script.src = "https://accounts.google.com/gsi/client"
+    script.async = true
+    script.defer = true
+    script.onload = resolve
+    document.head.appendChild(script)
+  })
+}
 </script>
 
 <style scoped>
+
+#google-btn {
+  display: flex;
+  justify-content: center;
+}
 /* Animista tracking-in-expand */
 @-webkit-keyframes tracking-in-expand {
   0% {
@@ -172,4 +229,6 @@ const handleRegister = () => {
   background-color: #fff;
   transform: rotateY(180deg);
 }
+
+
 </style>
