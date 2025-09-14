@@ -6,7 +6,11 @@
         <!-- Login Card -->
         <div class="flip-card-front card shadow-lg border-0">
           <div class="card-body p-4">
-            <h3 class="text-center mb-4 text-primary">Login</h3>
+            <h3 
+              class="text-center mb-4 text-primary"
+              :class="{ 'tracking-in-expand': animateTitle && !isRegister }">
+              Login
+            </h3>
             <form @submit.prevent="handleLogin">
               <div class="mb-3">
                 <input v-model="loginForm.email" type="email" class="form-control" placeholder="Email" required />
@@ -26,7 +30,11 @@
         <!-- Register Card -->
         <div class="flip-card-back card shadow-lg border-0">
           <div class="card-body p-4">
-            <h3 class="text-center mb-4 text-success">Register</h3>
+            <h3 
+              class="text-center mb-4 text-success"
+              :class="{ 'tracking-in-expand': animateTitle && isRegister }">
+              Register
+            </h3>
             <form @submit.prevent="handleRegister">
               <div class="mb-3">
                 <input v-model="registerForm.email" type="email" class="form-control" placeholder="Email" required />
@@ -52,9 +60,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 
 const isRegister = ref(false)
+const animateTitle = ref(true) // animates on first load
 
 const loginForm = ref({
   email: '',
@@ -67,8 +76,18 @@ const registerForm = ref({
   confirmPassword: ''
 })
 
+// Trigger animation, delayed to sync with flip duration (0.6s)
+const triggerAnimation = async () => {
+  animateTitle.value = false
+  await nextTick()
+  setTimeout(() => {
+    animateTitle.value = true
+  }, 600) // match the .flip-card transition time
+}
+
 const flipCard = () => {
   isRegister.value = !isRegister.value
+  triggerAnimation()
 }
 
 const handleLogin = () => {
@@ -86,6 +105,38 @@ const handleRegister = () => {
 </script>
 
 <style scoped>
+/* Animista tracking-in-expand */
+@-webkit-keyframes tracking-in-expand {
+  0% {
+    letter-spacing: -0.5em;
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes tracking-in-expand {
+  0% {
+    letter-spacing: -0.5em;
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.tracking-in-expand {
+  -webkit-animation: tracking-in-expand 0.7s cubic-bezier(0.215,0.610,0.355,1.000) both;
+  animation: tracking-in-expand 0.7s cubic-bezier(0.215,0.610,0.355,1.000) both;
+}
+
+/* Card flip styles */
 .card-wrapper {
   perspective: 1000px;
   width: 350px;
