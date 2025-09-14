@@ -196,8 +196,8 @@ const loadGoogleScript = () => {
 /* Card flip styles */
 .card-wrapper {
   perspective: 1000px;
-  width: 350px;
-  height: 420px;
+  width: clamp(320px, 28vw, 420px);
+  height: clamp(380px, 40vh, 500px);
 }
 
 .flip-card {
@@ -246,19 +246,26 @@ const loadGoogleScript = () => {
 }
 
 .bg-dark::before {
-  width: 400px;
-  height: 400px;
+  width: 40vw;
+  height: 40vw;
   background: #21d4fd;
-  top: -100px;
-  left: -100px;
+  top: -10vw;
+  left: -10vw;
 }
 
 .bg-dark::after {
-  width: 500px;
-  height: 500px;
+  width: 50vw;
+  height: 50vw;
   background: #b21f1f;
-  bottom: -150px;
-  right: -150px;
+  bottom: -15vw;
+  right: -15vw;
+}
+
+@media (max-width: 400px) {
+  .bg-dark::before,
+  .bg-dark::after {
+    opacity: 0.4;  /* softer glow on tiny screens */
+  }
 }
 
 
