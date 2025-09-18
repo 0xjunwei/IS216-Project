@@ -11,7 +11,6 @@
                 <h4 class="mb-0">
                   <i class="fas fa-calendar-alt me-2 text-success"></i>
                   {{ currentWeekRange }}
-                  <small class="text-muted ms-2">(Clicks: {{ debugCounter }})</small>
                 </h4>
                 <div class="d-flex align-items-center gap-3">
                   <input 
@@ -277,8 +276,6 @@ const selectedCategory = ref(null)
 const weeklyMeals = ref({})
 // Store purchased state for shopping list items
 const purchasedItems = ref(new Set())
-// Debug counter for testing
-const debugCounter = ref(0)
 
 // Helper functions for date handling
 const getDateString = (date) => {
@@ -307,7 +304,14 @@ const computedShoppingList = computed(() => {
   
   // Check if there are any meals at all
   let hasAnyMeals = false
-  const weekDates = getWeekDates(currentWeek.value)
+  // Use the same date generation logic as the UI to ensure consistency
+  const startOfWeek = new Date(currentWeek.value)
+  startOfWeek.setDate(currentWeek.value.getDate() - currentWeek.value.getDay())
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(startOfWeek)
+    date.setDate(startOfWeek.getDate() + i)
+    return date
+  })
   
   for (const date of weekDates) {
     const dayMeals = getMealsForDate(date)
@@ -339,17 +343,14 @@ const computedShoppingList = computed(() => {
       if (Array.isArray(mealArray) && mealArray.length > 0) {
         mealArray.forEach(meal => {
           totalMealsProcessed++
-          console.log(`Processing meal ${totalMealsProcessed}: ${meal.name}`)
           
           if (meal && meal.ingredients) {
-            console.log(`  - Has ${meal.ingredients.length} ingredients`)
             meal.ingredients.forEach(ingredient => {
               if (!ingredient.inPantry) {
                 totalIngredientsProcessed++
                 const ingredientName = ingredient.name
                 const quantityStr = ingredient.quantity
                 
-                console.log(`    - Processing ingredient ${totalIngredientsProcessed}: ${ingredientName} (${quantityStr})`)
                 
                 // Parse quantity more intelligently
                 let ingredientQty = 1
@@ -378,7 +379,6 @@ const computedShoppingList = computed(() => {
                   // Add to existing quantity
                   const existing = ingredientMap.get(ingredientName)
                   existing.quantity += ingredientQty
-                  console.log(`    - Updated existing: ${ingredientName} = ${existing.quantity} ${existing.unit}`)
                 } else {
                   // Add new ingredient
                   ingredientMap.set(ingredientName, {
@@ -388,23 +388,15 @@ const computedShoppingList = computed(() => {
                     sustainable: meal.sustainable,
                     purchased: false
                   })
-                  console.log(`    - Added new: ${ingredientName} = ${ingredientQty} ${unit}`)
                 }
-              } else {
-                console.log(`    - Skipping pantry item: ${ingredient.name}`)
               }
             })
-          } else {
-            console.log(`  - No ingredients found for ${meal.name}`)
           }
         })
       }
     }
   }
   
-  console.log(`Total meals processed: ${totalMealsProcessed}`)
-  console.log(`Total ingredients processed: ${totalIngredientsProcessed}`)
-  console.log(`Final ingredient map size: ${ingredientMap.size}`)
   
          // Convert map to array for display
          const allIngredients = Array.from(ingredientMap.values()).map(item => {
@@ -431,8 +423,6 @@ const computedShoppingList = computed(() => {
            }
          })
   
-  console.log(`Final shopping list ingredients: ${allIngredients.length}`)
-  console.log('Shopping list contents:', allIngredients.map(i => `${i.name} (${i.quantity})`))
   
   // Generate sustainable alternatives
   allIngredients.forEach(ingredient => {
@@ -586,28 +576,20 @@ const filteredMeals = computed(() => {
 
 // Methods
 const previousWeek = () => {
-  console.log('Previous week clicked')
-  debugCounter.value++
   currentWeek.value = new Date(currentWeek.value.getTime() - 7 * 24 * 60 * 60 * 1000)
-  console.log('New week:', currentWeek.value)
 }
 
 const nextWeek = () => {
-  console.log('Next week clicked')
-  debugCounter.value++
   currentWeek.value = new Date(currentWeek.value.getTime() + 7 * 24 * 60 * 60 * 1000)
-  console.log('New week:', currentWeek.value)
 }
 
 const goToDate = () => {
-  console.log('Go to date clicked:', selectedDate.value)
   if (selectedDate.value) {
     const targetDate = new Date(selectedDate.value)
     // Set the week to start on Sunday of the selected date's week
     const startOfWeek = new Date(targetDate)
     startOfWeek.setDate(targetDate.getDate() - targetDate.getDay())
     currentWeek.value = startOfWeek
-    console.log('New week from date:', currentWeek.value)
   }
 }
 
@@ -678,21 +660,13 @@ const clearAllMeals = () => {
 }
 
 const toggleShoppingItem = (ingredientName) => {
-  console.log('Toggling shopping item:', ingredientName)
   if (purchasedItems.value.has(ingredientName)) {
     purchasedItems.value.delete(ingredientName)
-    console.log('Removed from purchased items')
   } else {
     purchasedItems.value.add(ingredientName)
-    console.log('Added to purchased items')
   }
-  console.log('Current purchased items:', Array.from(purchasedItems.value))
 }
 
-const generateShoppingList = () => {
-  // This function is now handled by the computed property
-  console.log('Shopping list is automatically generated by computed property')
-}
 
 const getSustainableAlternative = (ingredient) => {
   const alternatives = {
