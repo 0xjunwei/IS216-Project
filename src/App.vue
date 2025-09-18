@@ -1,69 +1,109 @@
 <template>
-  <div class="d-flex justify-content-center align-items-center min-vh-100 bg-dark">
-    <div class="card-wrapper">
-      <div class="flip-card" :class="{ 'is-flipped': isRegister }">
-        
-        <!-- Login Card -->
-        <div class="flip-card-front card shadow-lg border-0">
-          <div class="card-body p-4">
-            <h3 
-              class="text-center mb-4 text-primary"
-              :class="{ 'tracking-in-expand': animateTitle && !isRegister }">
-              Login
-            </h3>
-            <form @submit.prevent="handleLogin">
-              <div class="mb-3">
-                <input v-model="loginForm.email" type="email" class="form-control" placeholder="Email" required />
+  <div>
+    <!-- Login/Register Screen -->
+    <div v-if="!isLoggedIn" class="d-flex justify-content-center align-items-center min-vh-100 bg-dark">
+      <div class="card-wrapper">
+        <div class="flip-card" :class="{ 'is-flipped': isRegister }">
+          
+          <!-- Login Card -->
+          <div class="flip-card-front card shadow-lg border-0">
+            <div class="card-body p-4">
+              <h3 
+                class="text-center mb-4 text-primary"
+                :class="{ 'tracking-in-expand': animateTitle && !isRegister }">
+                Login
+              </h3>
+              <form @submit.prevent="handleLogin">
+                <div class="mb-3">
+                  <input v-model="loginForm.email" type="email" class="form-control" placeholder="Email" required />
+                </div>
+                <div class="mb-3">
+                  <input v-model="loginForm.password" type="password" class="form-control" placeholder="Password" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+              </form>
+              <div class="text-center mt-3">
+                <div id="google-btn"></div>
               </div>
-              <div class="mb-3">
-                <input v-model="loginForm.password" type="password" class="form-control" placeholder="Password" required />
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Login</button>
-            </form>
-            <div class="text-center mt-3">
-              <div id="google-btn"></div>
+              <p class="text-center text-muted mt-3">
+                Don't have an account? 
+                <a href="#" @click.prevent="flipCard" class="text-decoration-none">Register</a>
+              </p>
             </div>
-            <p class="text-center text-muted mt-3">
-              Don’t have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-decoration-none">Register</a>
-            </p>
+          </div>
+
+          <!-- Register Card -->
+          <div class="flip-card-back card shadow-lg border-0">
+            <div class="card-body p-4">
+              <h3 
+                class="text-center mb-4 text-success"
+                :class="{ 'tracking-in-expand': animateTitle && isRegister }">
+                Register
+              </h3>
+              <form @submit.prevent="handleRegister">
+                <div class="mb-3">
+                  <input v-model="registerForm.email" type="email" class="form-control" placeholder="Email" required />
+                </div>
+                <div class="mb-3">
+                  <input v-model="registerForm.password" type="password" class="form-control" placeholder="Password" required />
+                </div>
+                <div class="mb-3">
+                  <input v-model="registerForm.confirmPassword" type="password" class="form-control" placeholder="Confirm Password" required />
+                </div>
+                <button type="submit" class="btn btn-success w-100">Register</button>
+              </form>
+              <p class="text-center text-muted mt-3">
+                Already have an account? 
+                <a href="#" @click.prevent="flipCard" class="text-decoration-none">Login</a>
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div v-else>
+      <Navigation
+        :current-page="currentPage"
+        :user-email="userEmail"
+        @navigate="handleNavigation"
+        @logout="handleLogout"
+      />
+
+      <div class="main-content">
+        <!-- Meal Planner Page -->
+        <MealPlanner v-if="currentPage === 'meal-planner'" />
+
+        <!-- Placeholder for other pages -->
+        <div v-else class="container-fluid py-5">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="card shadow-lg border-0">
+                <div class="card-body text-center py-5">
+                  <i class="fas fa-construction fa-3x text-muted mb-3"></i>
+                  <h3 class="text-muted">{{ getPageTitle() }} Coming Soon</h3>
+                  <p class="text-muted">This feature is under development.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <!-- Register Card -->
-        <div class="flip-card-back card shadow-lg border-0">
-          <div class="card-body p-4">
-            <h3 
-              class="text-center mb-4 text-success"
-              :class="{ 'tracking-in-expand': animateTitle && isRegister }">
-              Register
-            </h3>
-            <form @submit.prevent="handleRegister">
-              <div class="mb-3">
-                <input v-model="registerForm.email" type="email" class="form-control" placeholder="Email" required />
-              </div>
-              <div class="mb-3">
-                <input v-model="registerForm.password" type="password" class="form-control" placeholder="Password" required />
-              </div>
-              <div class="mb-3">
-                <input v-model="registerForm.confirmPassword" type="password" class="form-control" placeholder="Confirm Password" required />
-              </div>
-              <button type="submit" class="btn btn-success w-100">Register</button>
-            </form>
-            <p class="text-center text-muted mt-3">
-              Already have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-decoration-none">Login</a>
-            </p>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted  } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
+import Navigation from './components/Navigation.vue'
+import MealPlanner from './components/MealPlanner.vue'
+
+// Authentication state
+const isLoggedIn = ref(false)
+const userEmail = ref('user@example.com')
+const currentPage = ref('meal-planner')
 
 const isRegister = ref(false)
 const animateTitle = ref(true) // animates on first load
@@ -99,7 +139,9 @@ const flipCard = async () => {
 }
 
 const handleLogin = () => {
-  alert(`Logging in with: ${loginForm.value.email}`)
+  userEmail.value = loginForm.value.email
+  isLoggedIn.value = true
+  currentPage.value = 'meal-planner'
 }
 
 const handleRegister = () => {
@@ -107,14 +149,38 @@ const handleRegister = () => {
     alert('Passwords do not match!')
     return
   }
-  alert(`Registering with: ${registerForm.value.email}`)
-  flipCard()
+  userEmail.value = registerForm.value.email
+  isLoggedIn.value = true
+  currentPage.value = 'meal-planner'
 }
 
 const handleCredentialResponse = (response) => {
   console.log("Google Credential:", response.credential)
-  alert("Signed in with Google successfully!")
-  // TODO: send token to backend
+  userEmail.value = "google.user@example.com"
+  isLoggedIn.value = true
+  currentPage.value = 'meal-planner'
+}
+
+const handleNavigation = (page) => {
+  currentPage.value = page
+}
+
+const handleLogout = () => {
+  isLoggedIn.value = false
+  currentPage.value = 'meal-planner'
+  loginForm.value = { email: '', password: '' }
+  registerForm.value = { email: '', password: '', confirmPassword: '' }
+}
+
+const getPageTitle = () => {
+  const titles = {
+    'pantry': 'My Pantry',
+    'recipes': 'Recipes',
+    'analytics': 'Analytics',
+    'profile': 'Profile',
+    'settings': 'Settings'
+  }
+  return titles[currentPage.value] || 'Page'
 }
 
 const renderGoogleButton = () => {
@@ -268,6 +334,21 @@ const loadGoogleScript = () => {
   }
 }
 
+/* Main content styling */
+.main-content {
+  padding-top: 80px; /* Account for fixed navbar */
+  min-height: 100vh;
+}
 
+/* Font Awesome icons */
+.fas, .far, .fab {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+.fas:before {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
 
 </style>
