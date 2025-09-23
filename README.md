@@ -1,4 +1,4 @@
-# 🌱 EcoEats - Sustainable Meal Planner
+
 
 A modern, responsive meal planning application built with Vue.js 3, focusing on sustainability and healthy eating habits.
 
@@ -61,22 +61,6 @@ src/
 └── main.js                  # Application entry point
 ```
 
-## 🎯 Key Improvements Made
-
-### Week 1: Foundation & Security
-- ✅ Environment variable configuration
-- ✅ Input validation system
-- ✅ Data persistence with localStorage
-- ✅ Comprehensive error handling
-- ✅ Security improvements
-
-### Week 2: Refactoring & Architecture
-- ✅ Component refactoring (1,136 lines → 4 focused components)
-- ✅ Pinia state management
-- ✅ Composable functions for shared logic
-- ✅ Improved code organization
-- ✅ Removed unused files
-
 ## 🧪 Development
 
 - **Development**: `npm run dev`
@@ -85,14 +69,7 @@ src/
 - **Lint**: `npm run lint`
 - **Format**: `npm run format`
 
-## 📄 License
-
-This project is part of IS216 coursework and is for educational purposes.
-
-## 🤝 Contributing
-
-This is a student project, but suggestions and improvements are welcome!
 
 ---
 
-*Built with ❤️ for sustainable meal planning*
+
