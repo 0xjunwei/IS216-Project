@@ -40,16 +40,30 @@
               <i class="fas fa-user me-1"></i>{{ userEmail }}
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#" @click="navigateTo('profile')">
-                <i class="fas fa-user-cog me-2"></i>Profile
-              </a></li>
-              <li><a class="dropdown-item" href="#" @click="navigateTo('settings')">
-                <i class="fas fa-cog me-2"></i>Settings
-              </a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" @click="logout">
-                <i class="fas fa-sign-out-alt me-2"></i>Logout
-              </a></li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="navigateTo('profile')"
+                >
+                  <i class="fas fa-user-cog me-2"></i>Profile
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="navigateTo('settings')"
+                >
+                  <i class="fas fa-cog me-2"></i>Settings
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="#" @click="logout">
+                  <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
+              </li>
             </ul>
           </li>
         </ul>
@@ -59,26 +73,26 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+// defineProps and defineEmits are compiler macros, no need to import
 
-const props = defineProps({
+defineProps({
   currentPage: String,
-  userEmail: String
-})
+  userEmail: String,
+});
 
-const emit = defineEmits(['navigate', 'logout'])
+const emit = defineEmits(["navigate", "logout"]);
 
 const navigateTo = (page) => {
-  emit('navigate', page)
-}
+  emit("navigate", page);
+};
 
 const goHome = () => {
-  navigateTo('meal-planner')
-}
+  navigateTo("meal-planner");
+};
 
 const logout = () => {
-  emit('logout')
-}
+  emit("logout");
+};
 </script>
 
 <style scoped>
@@ -146,5 +160,51 @@ const logout = () => {
 
 .navbar-toggler:focus {
   box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+  
+  .nav-link {
+    padding: 0.75rem 1rem !important;
+    margin: 0.1rem 0;
+    min-height: 44px; /* iOS touch target minimum */
+    touch-action: manipulation;
+  }
+  
+  .dropdown-item {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .navbar-toggler {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Better mobile dropdown */
+  .dropdown-menu {
+    margin-top: 0.25rem;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  
+  .nav-link {
+    font-size: 0.9rem;
+  }
+  
+  .dropdown-item {
+    font-size: 0.9rem;
+  }
 }
 </style>
