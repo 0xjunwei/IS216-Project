@@ -170,7 +170,7 @@ import { ref, computed } from 'vue'
 
 // Daily limit of 50 too low, have to find another service or pay for it
 // May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing
-const API_KEY = '543fcdb5172b466d909a4f2388cdc3a3'
+const API_KEY = ''
 
 // Pantry state
 let nextId = 1
