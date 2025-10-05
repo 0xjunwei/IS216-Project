@@ -28,6 +28,7 @@
                 </div>
                 <div class="col-12 d-flex gap-2">
                   <button class="btn btn-glow" type="submit">Add to pantry</button>
+                  <button v-if="!isLoggedIn" class="btn btn-glow" type="button" @click="pullPantryFromFirebase">Retrieve Pantry</button>
                   <button class="btn btn-glass" type="button" @click="clearPantry" :disabled="!pantry.length">Clear</button>
                 </div>
               </form>
@@ -168,9 +169,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-// Daily limit of 50 too low, have to find another service or pay for it
+// Daily limit of 50 too low, have to find another service or pay for it, Estimate 2 queries per day
 // May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing
-const API_KEY = ''
+// Use ENV file to protect key
+const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY
 
 // Pantry state
 let nextId = 1
@@ -526,6 +528,7 @@ function toggleDetails(recipe) {
   color: #fff;
   border-radius: 12px;
 }
-.btn-glass:hover { background: rgba(255,255,255,0.12); }
+
+.btn-glass:hover { background: rgba(255, 136, 90, 0.894); }
 
 </style>
