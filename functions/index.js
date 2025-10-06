@@ -10,7 +10,9 @@
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
+const URLs = ["https://meal-planner-b7e64.web.app", "http://localhost"];
 
+const axios = require("axios");
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
 // traffic spikes by instead downgrading performance. This limit is a

@@ -17,12 +17,12 @@
 
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
+          <li class="nav-item" v-if="!user">
             <router-link to="/login" class="nav-link" active-class="active">
               Login
             </router-link>
           </li>
-          <li class="nav-item">
+          <li class="nav-item" v-if="user">
             <router-link to="/tracker" class="nav-link" active-class="active">
               Pantry Tracker Page
             </router-link>
@@ -32,15 +32,20 @@
               Recipe Suggestion
             </router-link>
           </li>
-          <li class="nav-item">
+          <li class="nav-item" v-if="user">
             <router-link to="/planner" class="nav-link" active-class="active">
               Meal Planner
             </router-link>
           </li>
-          <li class="nav-item">
+          <li class="nav-item" v-if="user">
             <router-link to="/dashboard" class="nav-link" active-class="active">
               Dashboard
             </router-link>
+          </li>
+          <li class="nav-item ms-lg-3" v-if="user">
+            <button class="btn btn-outline-light" @click="logout">
+              Sign out
+            </button>
           </li>
         </ul>
       </div>
@@ -54,6 +59,26 @@
 
 
 <script setup>
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+
+const router = useRouter();
+const user = ref(null);
+
+let unsubscribe;
+onMounted(() => {
+  unsubscribe = onAuthStateChanged(auth, (u) => {
+    user.value = u; // null when signed out, user object when signed in
+  });
+});
+onUnmounted(() => unsubscribe && unsubscribe());
+
+async function logout() {
+  await signOut(auth);
+  router.push("/login");
+}
 </script>
 
 <style>

@@ -28,7 +28,7 @@
                 </div>
                 <div class="col-12 d-flex gap-2">
                   <button class="btn btn-glow" type="submit">Add to pantry</button>
-                  <button v-if="!isLoggedIn" class="btn btn-glow" type="button" @click="pullPantryFromFirebase">Retrieve Pantry</button>
+                  <button v-if="user" class="btn btn-glow" type="button" @click="pullPantryFromFirebase">Retrieve Pantry</button>
                   <button class="btn btn-glass" type="button" @click="clearPantry" :disabled="!pantry.length">Clear</button>
                 </div>
               </form>
@@ -167,7 +167,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+// Check if user exists then show the retrieve button
+const user = ref(auth.currentUser);
+let unsub = null;
+
+onMounted(() => {
+  unsub = onAuthStateChanged(auth, (u) => {
+    user.value = u;
+  });
+});
+onUnmounted(() => unsub && unsub());
 
 // Daily limit of 50 too low, have to find another service or pay for it, Estimate 2 queries per day
 // May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing

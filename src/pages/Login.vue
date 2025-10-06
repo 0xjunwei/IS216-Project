@@ -20,9 +20,6 @@
               </div>
               <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
-            <div class="text-center mt-3">
-              <div id="google-btn"></div>
-            </div>
             <p class="text-center text-muted mt-3">
               Don’t have an account? 
               <a href="#" @click.prevent="flipCard" class="text-decoration-none">Register</a>
@@ -63,98 +60,108 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted  } from 'vue'
+import { ref, nextTick, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { auth } from "@/lib/firebase";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
+} from "firebase/auth";
 
-const isRegister = ref(false)
-const animateTitle = ref(true) // animates on first load
+const router = useRouter();
 
-const loginForm = ref({
-  email: '',
-  password: ''
-})
+const isRegister = ref(false);
+const animateTitle = ref(true);
 
-const registerForm = ref({
-  email: '',
-  password: '',
-  confirmPassword: ''
-})
+const loginForm = ref({ email: "", password: "" });
+const registerForm = ref({ email: "", password: "", confirmPassword: "" });
 
-// Trigger animation, delayed to sync with flip duration (0.6s)
 const triggerAnimation = async () => {
-  animateTitle.value = false
-  await nextTick()
-  setTimeout(() => {
-    animateTitle.value = true
-  }, 600) // match the .flip-card transition time
-}
+  animateTitle.value = false;
+  await nextTick();
+  setTimeout(() => (animateTitle.value = true), 600);
+};
 
 const flipCard = async () => {
-  isRegister.value = !isRegister.value
-  triggerAnimation()
-
+  isRegister.value = !isRegister.value;
+  triggerAnimation();
   if (!isRegister.value) {
-    await nextTick()   // wait for DOM update
-    renderGoogleButton()
+    await nextTick();
+    renderGoogleButton();
   }
-}
+};
 
-const handleLogin = () => {
-  alert(`Logging in with: ${loginForm.value.email}`)
-}
+// ========= EMAIL/PASSWORD with Firebase =========
+const handleLogin = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      loginForm.value.email,
+      loginForm.value.password
+    );
+    router.push({ name: "SmartRecipes" }); // or '/recipes'
+  } catch (e) {
+    alert(mapAuthError(e));
+  }
+};
 
-const handleRegister = () => {
+const handleRegister = async () => {
   if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    alert('Passwords do not match!')
-    return
+    alert("Passwords do not match!");
+    return;
   }
-  alert(`Registering with: ${registerForm.value.email}`)
-  flipCard()
-}
-
-const handleCredentialResponse = (response) => {
-  console.log("Google Credential:", response.credential)
-  alert("Signed in with Google successfully!")
-  // TODO: send token to backend
-}
-
-const renderGoogleButton = () => {
-  const btn = document.getElementById("google-btn")
-  if (btn && btn.childElementCount === 0) { // avoid duplicates
-    window.google?.accounts.id.renderButton(btn, {
-      theme: "outline",
-      size: "large",
-      width: "100%"
-    })
+  try {
+    await createUserWithEmailAndPassword(
+      auth,
+      registerForm.value.email,
+      registerForm.value.password
+    );
+    router.push({ name: "SmartRecipes" });
+  } catch (e) {
+    alert(mapAuthError(e));
   }
-}
+};
+
 
 onMounted(async () => {
-  await loadGoogleScript()
+  await loadGoogleScript();
 
   window.google?.accounts.id.initialize({
-    // will fill in the client_id on my client side dont wish to leak
+    // Use the Web client ID from Firebase Auth's Google provider page
     client_id: "xxx.apps.googleusercontent.com",
-    callback: handleCredentialResponse
-  })
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  });
 
-  renderGoogleButton()
-})
+  renderGoogleButton();
+});
 
-const loadGoogleScript = () => {
+function loadGoogleScript() {
   return new Promise((resolve) => {
-    if (window.google && window.google.accounts) {
-      resolve()
-      return
-    }
-    const script = document.createElement("script")
-    script.src = "https://accounts.google.com/gsi/client"
-    script.async = true
-    script.defer = true
-    script.onload = resolve
-    document.head.appendChild(script)
-  })
+    if (window.google && window.google.accounts) return resolve();
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true;
+    s.defer = true;
+    s.onload = resolve;
+    document.head.appendChild(s);
+  });
+}
+
+function mapAuthError(err) {
+  const code = err?.code || "";
+  if (code.includes("auth/invalid-credential")) return "Invalid email or password.";
+  if (code.includes("auth/user-not-found")) return "No account found for this email.";
+  if (code.includes("auth/wrong-password")) return "Wrong password.";
+  if (code.includes("auth/email-already-in-use")) return "Email already in use.";
+  if (code.includes("auth/weak-password")) return "Password should be at least 6 characters.";
+  return err?.message || "Something went wrong.";
 }
 </script>
+
 
 <style scoped>
 

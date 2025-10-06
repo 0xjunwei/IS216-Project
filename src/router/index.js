@@ -4,8 +4,8 @@ import SmartRecipes from "../pages/SmartRecipes.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
-  { path: "/login", component: Login },
-  { path: "/recipe", component: SmartRecipes },
+  { path: "/login", name: "Login", component: Login },
+  { path: "/recipe", name: "SmartRecipes", component: SmartRecipes },
 ];
 
 const router = createRouter({
