@@ -153,7 +153,7 @@ async function handleLogin() {
   resetInfo.value = "";
   loggingIn.value = true;
   try {
-    await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password).then();
+    await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password);
     // Needs a landing page will modify and make one for now send to the only page i have i guess
     router.push({ name: "SmartRecipes" });
   } catch (e) {
@@ -171,16 +171,9 @@ async function handleRegister() {
   }
   registering.value = true;
   try {
-    await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password).then((userCredential) => {
-    // Signed in 
-    router.push({ name: "Login" });
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-  });;
+    await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password);
     // Auto logins from registration
-    
+    router.push({ name: "Login" });
   } catch (e) {
     registerError.value = mapAuthError(e);
   } finally {

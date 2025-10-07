@@ -73,7 +73,7 @@ onMounted(() => {
     user.value = u;
   });
 });
-onUnmounted(() => unsubscribe && unsubscribe());
+onUnmounted(() => { if (unsubscribe) unsubscribe()});
 
 async function logout() {
   await signOut(auth);
