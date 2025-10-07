@@ -28,7 +28,7 @@
                 </div>
                 <div class="col-12 d-flex gap-2">
                   <button class="btn btn-glow" type="submit">Add to pantry</button>
-                  <button v-if="user" class="btn btn-glow" type="button" @click="pullPantryFromFirebase">Retrieve Pantry</button>
+                  <button v-if="user" class="btn btn-glow" type="button" @click="retrievePantry">Retrieve Pantry</button>
                   <button class="btn btn-glass" type="button" @click="clearPantry" :disabled="!pantry.length">Clear</button>
                 </div>
               </form>
@@ -168,8 +168,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { auth } from "../js/config.js";
+import { auth, db } from "../js/config.js";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
 
 // Check if user exists then show the retrieve button
 const user = ref(auth.currentUser);
@@ -193,7 +194,7 @@ const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY
 // Pantry state
 let nextId = 1
 const pantry = ref([])
-const expiringWindowDays = ref(3)
+const expiringWindowDays = ref(7)
 const zeroWasteOnly = ref(false)
 
 const newItem = ref({ name: '', qty: 1, unit: '', expiry: '' })
@@ -292,8 +293,9 @@ async function findRecipes() {
   loading.value = true
   try {
     // Use findByIngredients to get matches + used/missed ingredient breakdown
+    //https://spoonacular.com/food-api/docs#Search-Recipes-by-Ingredients
     const ingredientList = pantry.value.map(i => encodeURIComponent(i.name)).join(',')
-    const res = await fetch(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=12&ranking=1&ignorePantry=false&apiKey=${API_KEY}`)
+    const res = await fetch(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=12&ranking=1&ignorePantry=true&apiKey=${API_KEY}`)
     if (!res.ok && res.status == 402) {
       throw new Error(`API Limit reached, change key / contact team`);
     } else if (!res.ok) {
@@ -364,6 +366,58 @@ async function findRecipes() {
 function toggleDetails(recipe) {
   recipe.showDetails = !recipe.showDetails
 }
+
+async function retrievePantry() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
+
+  const pantryRef = doc(db, "users", user.uid);
+  try {
+    const snapshot = await getDoc(pantryRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log("Retrieved pantry:", data.pantry);
+      // Optional: replace your local pantry with it
+      pantry.value = data.pantry || [];
+    } else {
+      console.log("No pantry found for this user.");
+    }
+  } catch (err) {
+    console.error("Error getting pantry:", err);
+  }
+}
+// Test functions as I am not supposed to add to pantry ingredients, but required for backend testing
+async function testSetPantryToFirestore() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
+
+  const pantryRef = doc(db, "users", user.uid);
+
+  // Example pantry data
+  const testPantry = [
+    { name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
+    { name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
+    { name: "broccoli", qty: 3, unit: "pcs", expiry: "2025-10-09" },
+  ];
+
+  try {
+    await setDoc(pantryRef, { pantry: testPantry }, { merge: true });
+    console.log("Test pantry written to Firestore!");
+  } catch (err) {
+    console.error("Error writing pantry:", err);
+  }
+}
+
+
+window.testSetPantryToFirestore = testSetPantryToFirestore;
+// window.testGetPantryFromFirestore = testGetPantryFromFirestore;
+
 </script>
 
 <style scoped>

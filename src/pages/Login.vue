@@ -93,14 +93,19 @@
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from "vue";
+import { ref, nextTick, computed, onMounted, onUnmounted} from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "../js/config.js";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  onAuthStateChanged,
 } from "firebase/auth";
+
+
+// If user is logged in should redirect away else weird
+
 
 const router = useRouter();
 
@@ -119,6 +124,19 @@ const sendingReset = ref(false);
 const loginError = ref("");
 const registerError = ref("");
 const resetInfo = ref("");
+let unsubscribe = null;
+
+onMounted(() => {
+  unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      router.replace({ name: "SmartRecipes" });
+    }
+  });
+});
+onUnmounted(() => {
+    if (unsubscribe) unsubscribe();
+});
+
 
 const triggerAnimation = async () => {
   animateTitle.value = false;
@@ -173,7 +191,7 @@ async function handleRegister() {
   try {
     await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password);
     // Auto logins from registration
-    router.push({ name: "Login" });
+    router.push({ name: "SmartRecipes" });
   } catch (e) {
     registerError.value = mapAuthError(e);
   } finally {

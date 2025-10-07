@@ -16,33 +16,3 @@ const auth = getAuth(app);
 const db = getFirestore(app, "meal-planner");
 
 export { app, auth, db };
-
-// Firebase authentication service
-export function getFirebaseApp() {
-  return app;
-}
-export function getFirebaseAuth() {
-  return auth;
-}
-// Firestore
-export function getFirebaseStore() {
-  const db = getFirestore(app);
-  return db;
-}
-export function getFirebaseProvider() {
-  return provider;
-}
-export function getFirebaseStorage() {
-  // Initialize Cloud Storage
-  const storage = getStorage(app);
-  return storage;
-}
-
-export function isAuthenticated() {
-  const userUID = localStorage.getItem("userUID");
-  if (!userUID) {
-    return false;
-  } else {
-    return true;
-  }
-}
