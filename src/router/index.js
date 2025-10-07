@@ -5,9 +5,9 @@ import Pantry from "../pages/Pantry.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
-  { path: "/login", component: Login },
-  { path: "/recipe", component: SmartRecipes },
-  { path: "/pantry",component: Pantry},
+  { path: "/pantry", name: "Pantry", component: Pantry },
+  { path: "/login", name: "Login", component: Login },
+  { path: "/recipe", name: "SmartRecipes", component: SmartRecipes },
 ];
 
 const router = createRouter({
