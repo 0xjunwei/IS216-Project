@@ -61,7 +61,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { auth } from "@/lib/firebase";
+import { auth } from "./js/config.js";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const router = useRouter();
@@ -70,7 +70,7 @@ const user = ref(null);
 let unsubscribe;
 onMounted(() => {
   unsubscribe = onAuthStateChanged(auth, (u) => {
-    user.value = u; // null when signed out, user object when signed in
+    user.value = u;
   });
 });
 onUnmounted(() => unsubscribe && unsubscribe());

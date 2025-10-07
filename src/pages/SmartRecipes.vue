@@ -168,18 +168,20 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { auth } from "@/lib/firebase";
+import { auth } from "../js/config.js";
 import { onAuthStateChanged } from "firebase/auth";
 // Check if user exists then show the retrieve button
 const user = ref(auth.currentUser);
 let unsub = null;
-
+// Based on https://firebase.google.com/docs/auth/web/start#sign_in_existing_users
+// Already in auth from config thus slight modification from the google version
 onMounted(() => {
-  unsub = onAuthStateChanged(auth, (u) => {
-    user.value = u;
+  unsub = onAuthStateChanged(auth, (uid) => {
+    user.value = uid;
   });
 });
-onUnmounted(() => unsub && unsub());
+// Incase to clear memory https://vuejs.org/api/composition-api-lifecycle
+onUnmounted(() => {if (unsub) unsub()});
 
 // Daily limit of 50 too low, have to find another service or pay for it, Estimate 2 queries per day
 // May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing

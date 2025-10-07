@@ -18,10 +18,26 @@
               <div class="mb-3">
                 <input v-model="loginForm.password" type="password" class="form-control" placeholder="Password" required />
               </div>
+
               <button type="submit" class="btn btn-primary w-100">Login</button>
+
+              <div class="text-center mt-2">
+              <button
+                type="button"
+                class="btn btn-link text-decoration-none small"
+                @click="forgotPassword"
+                :disabled="sendingReset || !!resetInfo"
+              >
+                <span v-if="!sendingReset && !resetInfo">Forgot password?</span>
+                <span v-if="resetInfo" class="text-success">Reset link sent</span>
+              </button>
+            </div>
               <div class="feedback-slot">
                 <div v-if="loginError" class="alert alert-danger alert-compact mb-0" role="alert">
                   {{ loginError }}
+                </div>
+                 <div v-if="resetInfo" class="alert alert-success alert-compact mb-0" role="alert">
+                  {{ resetInfo }}
                 </div>
               </div>
             </form>
@@ -60,6 +76,7 @@
                 <div v-if="registerError" class="alert alert-danger alert-compact mb-0" role="alert">
                   {{ registerError }}
                 </div>
+               
               </div>
             </form>
             
@@ -78,7 +95,7 @@
 <script setup>
 import { ref, nextTick, computed } from "vue";
 import { useRouter } from "vue-router";
-import { auth } from "@/lib/firebase";
+import { auth } from "../js/config.js";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -136,7 +153,7 @@ async function handleLogin() {
   resetInfo.value = "";
   loggingIn.value = true;
   try {
-    await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password);
+    await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password).then();
     // Needs a landing page will modify and make one for now send to the only page i have i guess
     router.push({ name: "SmartRecipes" });
   } catch (e) {
@@ -154,9 +171,16 @@ async function handleRegister() {
   }
   registering.value = true;
   try {
-    await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password);
-    // Needs a landing page will modify and make one for now send to the only page i have i guess
-    router.push({ name: "SmartRecipes" });
+    await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password).then((userCredential) => {
+    // Signed in 
+    router.push({ name: "Login" });
+  })
+  .catch((error) => {
+    const errorCode = error.code;
+    const errorMessage = error.message;
+  });;
+    // Auto logins from registration
+    
   } catch (e) {
     registerError.value = mapAuthError(e);
   } finally {
@@ -167,21 +191,34 @@ async function handleRegister() {
 async function forgotPassword() {
   loginError.value = "";
   resetInfo.value = "";
+
   const email = (loginForm.value.email || "").trim();
+
   if (!email) {
     loginError.value = 'Enter your email above, then click "Forgot password?".';
     return;
   }
+
+  // prevent spam
+  if (sendingReset.value) return;
+
   sendingReset.value = true;
+
   try {
     await sendPasswordResetEmail(auth, email);
-    resetInfo.value = "Password reset email sent. Please check your inbox.";
+    resetInfo.value = "A password reset link has been sent to your email.";
+    
+    // timeout the button
+    setTimeout(() => {
+      sendingReset.value = false;
+      resetInfo.value = "";
+    }, 30000); // 30 seconds cooldown
   } catch (e) {
     loginError.value = mapAuthError(e);
-  } finally {
     sendingReset.value = false;
   }
 }
+
 
 function mapAuthError(err) {
   const code = err?.code || "";
