@@ -4,14 +4,14 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAtejTnh_Alkj7_TWWM790ewBCitBQT1KE",
-  authDomain: "meal-planner-b7e64.firebaseapp.com",
-  databaseURL: "https://meal-planner-b7e64-default-rtdb.firebaseio.com",
-  projectId: "meal-planner-b7e64",
-  storageBucket: "meal-planner-b7e64.firebasestorage.app",
-  messagingSenderId: "81058674749",
-  appId: "1:81058674749:web:4aebce63c29d6a43081254",
-  measurementId: "G-4R355V3PX9"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);

@@ -159,12 +159,11 @@ async function handleLogin() {
   resetInfo.value = "";
   loggingIn.value = true;
   
-  // Debug logging
+  // Debug logging (removed sensitive data)
   console.log("Attempting login with:", {
     email: loginForm.value.email,
     passwordLength: loginForm.value.password.length,
-    authDomain: auth.app.options.authDomain,
-    apiKey: auth.app.options.apiKey
+    authDomain: auth.app.options.authDomain
   });
   
   try {
