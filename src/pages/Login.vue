@@ -1,99 +1,142 @@
 <template>
-  <div class="d-flex justify-content-center align-items-center min-vh-100 bg-dark">
-    <div class="card-wrapper">
-      <div class="flip-card" :class="{ 'is-flipped': isRegister }">
-        
-        <!-- Login Card -->
-        <div class="flip-card-front card shadow-lg border-0">
-          <div class="card-body p-4">
-            <h3 
-              class="text-center mb-4 text-primary"
-              :class="{ 'tracking-in-expand': animateTitle && !isRegister }">
-              Login
-            </h3>
-            <form @submit.prevent="handleLogin" class="auth-form">
-              <div class="mb-3">
-                <input v-model="loginForm.email" type="email" class="form-control" placeholder="Email" required />
-              </div>
-              <div class="mb-3">
-                <input v-model="loginForm.password" type="password" class="form-control" placeholder="Password" required />
-              </div>
+  <div class="min-vh-100 d-flex align-items-center justify-content-center px-3" style="background: linear-gradient(to bottom, #f0fdf4, #ffffff);">
+    <div class="card w-100" style="max-width: 400px;">
+      <div class="card-body p-5">
+        <div class="text-center mb-4">
+          <div class="bg-success p-3 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+            <i class="bi bi-leaf-fill text-white" style="font-size: 2rem;"></i>
+          </div>
+          <h1 class="h3 fw-bold text-success mb-2">Welcome to FoodSaver</h1>
+          <p class="text-muted">{{ isRegister ? 'Create your account' : 'Sign in to start reducing food waste' }}</p>
+        </div>
 
-              <button type="submit" class="btn btn-primary w-100">Login</button>
-
-              <div class="text-center mt-2">
-              <button
-                type="button"
-                class="btn btn-link text-decoration-none small"
-                @click="forgotPassword"
-                :disabled="sendingReset || !!resetInfo"
-              >
-                <span v-if="!sendingReset && !resetInfo">Forgot password?</span>
-                <span v-if="resetInfo" class="text-success">Reset link sent</span>
-              </button>
-            </div>
-              <div class="feedback-slot">
-                <div v-if="loginError" class="alert alert-danger alert-compact mb-0" role="alert">
-                  {{ loginError }}
-                </div>
-                 <div v-if="resetInfo" class="alert alert-success alert-compact mb-0" role="alert">
-                  {{ resetInfo }}
-                </div>
-              </div>
-            </form>
+        <form v-if="!isRegister" @submit.prevent="handleLogin">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input
+              v-model="loginForm.email"
+              type="email"
+              class="form-control"
+              id="email"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
           
-            <p class="text-center text-muted mt-auto">
-              Don’t have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-decoration-none">Register</a>
-            </p>
+          <div class="mb-4">
+            <label for="password" class="form-label">Password</label>
+            <input
+              v-model="loginForm.password"
+              type="password"
+              class="form-control"
+              id="password"
+              placeholder="Enter your password"
+              required
+            />
           </div>
-        </div>
 
-        <!-- Register Card -->
-        <div class="flip-card-back card shadow-lg border-0"> 
-          <div class="card-body p-4">
-            <h3 
-              class="text-center mb-4 text-success"
-              :class="{ 'tracking-in-expand': animateTitle && isRegister }">
-              Register
-            </h3>
-            <form @submit.prevent="handleRegister" class="auth-form">
-              <div class="mb-3">
-                <input v-model="registerForm.email" type="email" class="form-control" placeholder="Email" required />
-              </div>
-              <div class="mb-3">
-                <input v-model="registerForm.password" type="password" class="form-control" placeholder="Password" required />
-              </div>
-              <div class="mb-3">
-                <input v-model="registerForm.confirmPassword" type="password" class="form-control" placeholder="Confirm Password" required />
-                <small v-if="passwordsFilled && !passwordsMatch" class="text-danger">Passwords do not match.</small>
-              </div>
-              <button type="submit" class="btn btn-success w-100" :disabled="!passwordsMatch || registering">
-                <span v-if="!registering">Register</span>
-                <span v-else class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              </button>
-              <div class="feedback-slot">
-                <div v-if="registerError" class="alert alert-danger alert-compact mb-0" role="alert">
-                  {{ registerError }}
-                </div>
-               
-              </div>
-            </form>
-            
-            <p class="text-center text-muted mt-auto">
+          <div class="text-center mb-3">
+            <button
+              type="button"
+              class="btn btn-link text-decoration-none small p-0"
+              @click="forgotPassword"
+              :disabled="sendingReset || !!resetInfo"
+            >
+              <span v-if="!sendingReset && !resetInfo">Forgot password?</span>
+              <span v-if="resetInfo" class="text-success">Reset link sent</span>
+            </button>
+          </div>
+
+          <div v-if="loginError" class="alert alert-danger" role="alert">
+            {{ loginError }}
+          </div>
+          <div v-if="resetInfo" class="alert alert-success" role="alert">
+            {{ resetInfo }}
+          </div>
+
+          <button 
+            type="submit" 
+            class="btn btn-success w-100"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <form v-else @submit.prevent="handleRegister">
+          <div class="mb-3">
+            <label for="register-email" class="form-label">Email</label>
+            <input
+              v-model="registerForm.email"
+              type="email"
+              class="form-control"
+              id="register-email"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+          
+          <div class="mb-3">
+            <label for="register-password" class="form-label">Password</label>
+            <input
+              v-model="registerForm.password"
+              type="password"
+              class="form-control"
+              id="register-password"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <div class="mb-4">
+            <label for="confirm-password" class="form-label">Confirm Password</label>
+            <input
+              v-model="registerForm.confirmPassword"
+              type="password"
+              class="form-control"
+              id="confirm-password"
+              placeholder="Confirm your password"
+              required
+            />
+            <small v-if="passwordsFilled && !passwordsMatch" class="text-danger">Passwords do not match.</small>
+          </div>
+
+          <div v-if="registerError" class="alert alert-danger" role="alert">
+            {{ registerError }}
+          </div>
+
+          <button 
+            type="submit" 
+            class="btn btn-success w-100"
+            :disabled="!passwordsMatch || registering"
+          >
+            <span v-if="!registering">Create Account</span>
+            <span v-else class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <div class="text-center mt-4">
+          <p class="small text-muted">
+            <span v-if="!isRegister">
+              Don't have an account? 
+              <a href="#" @click.prevent="flipCard" class="text-success text-decoration-none fw-medium">
+                Sign up here
+              </a>
+            </span>
+            <span v-else>
               Already have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-decoration-none">Login</a>
-            </p>
-          </div>
+              <a href="#" @click.prevent="flipCard" class="text-success text-decoration-none fw-medium">
+                Sign in
+              </a>
+            </span>
+          </p>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, computed, onMounted, onUnmounted} from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "../js/config.js";
 import {
@@ -110,12 +153,9 @@ import {
 const router = useRouter();
 
 const isRegister = ref(false);
-const animateTitle = ref(true);
-
 
 const loginForm = ref({ email: "", password: "" });
 const registerForm = ref({ email: "", password: "", confirmPassword: "" });
-
 
 const loggingIn = ref(false);
 const registering = ref(false);
@@ -137,19 +177,11 @@ onUnmounted(() => {
     if (unsubscribe) unsubscribe();
 });
 
-
-const triggerAnimation = async () => {
-  animateTitle.value = false;
-  await nextTick();
-  setTimeout(() => (animateTitle.value = true), 600);
-};
-
-const flipCard = async () => {
+const flipCard = () => {
   isRegister.value = !isRegister.value;
   loginError.value = "";
   registerError.value = "";
   resetInfo.value = "";
-  triggerAnimation();
 };
 
 const passwordsFilled = computed(() =>
@@ -249,144 +281,7 @@ function mapAuthError(err) {
 
 
 <style scoped>
-
-/* Animista tracking-in-expand */
-@-webkit-keyframes tracking-in-expand {
-  0% {
-    letter-spacing: -0.5em;
-    opacity: 0;
-  }
-  40% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
+.card {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
-@keyframes tracking-in-expand {
-  0% {
-    letter-spacing: -0.5em;
-    opacity: 0;
-  }
-  40% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.tracking-in-expand {
-  -webkit-animation: tracking-in-expand 0.7s cubic-bezier(0.215,0.610,0.355,1.000) both;
-  animation: tracking-in-expand 0.7s cubic-bezier(0.215,0.610,0.355,1.000) both;
-}
-
-/* Error message */
-.feedback-slot{
-  min-height: 48px;         
-  margin-top: .75rem; 
-}
-
-/* smaller alert so it doesn’t push content */
-.alert-compact{
-  padding: .5rem .75rem;
-  font-size: .875rem;
-  border-radius: .5rem;
-}
-
-
-/* Card flip styles */
-.card-wrapper{
-  width: clamp(320px, 48vw, 500px);
-  height: clamp(480px, 32vh, 600px);
-}
-
-
-.flip-card {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transition: transform 0.6s ease-in-out;
-  transform-style: preserve-3d;
-}
-
-.flip-card.is-flipped {
-  transform: rotateY(180deg);
-}
-
-.flip-card-front,
-.flip-card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  border-radius: 12px;
-}
-
-
-
-.flip-card-front {
-  background-color: #fff;
-}
-
-.flip-card-back {
-  background-color: #fff;
-  transform: rotateY(180deg);
-}
-
-.flip-card-front .card-body,
-.flip-card-back .card-body{
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-
-.auth-form{
-  flex: 1 1 auto;
-  overflow-y: auto;
-}
-/*
-.bg-dark {
-  background: #0f2027;
-  position: relative;
-  overflow: hidden;
-}
-
-.bg-dark::before,
-.bg-dark::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.6;
-}
-
-.bg-dark::before {
-  width: 40vw;
-  height: 40vw;
-  background: #21d4fd;
-  top: -10vw;
-  left: -10vw;
-}
-
-.bg-dark::after {
-  width: 50vw;
-  height: 50vw;
-  background: #b21f1f;
-  bottom: -15vw;
-  right: -15vw;
-}
-  
-@media (max-width: 420px){
-  .card-wrapper{
-    width: 92vw;
-    height: min(80vh, 600px);
-  }
-  .alert-compact{ font-size: .82rem; padding: .45rem .65rem; }
-}*/
-
-
-
-
 </style>

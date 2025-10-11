@@ -1,10 +1,12 @@
 <template>
   <div class="min-vh-100 bg-light d-flex flex-column">
-    <!-- Desktop Navigation -->
+    <!-- Desktop Nav -->
     <nav class="d-none d-md-flex bg-white border-bottom px-4 py-3 fixed-top shadow-sm">
       <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
-          <h2 class="text-success mb-0 me-4 fw-bold">FoodSaver</h2>
+          <h2 class="text-success mb-0 me-4 fw-bold">
+            <router-link to="/" class="text-success text-decoration-none">FoodSaver</router-link>
+          </h2>
           <div class="d-flex gap-2">
             <router-link
               v-for="item in navItems"
@@ -34,10 +36,12 @@
       </div>
     </nav>
 
-    <!-- Mobile Navigation -->
+    <!-- Mobile Nav, if open wont show bottom nav bar, for login/logout purpose else ugly below and dw make profile page-->
     <nav class="d-md-none bg-white border-bottom fixed-top shadow-sm">
       <div class="d-flex justify-content-between align-items-center px-3 py-3">
-        <h2 class="text-success mb-0 fw-bold">FoodSaver</h2>
+        <h2 class="text-success mb-0 fw-bold">
+          <router-link to="/" class="text-success text-decoration-none">FoodSaver</router-link>
+        </h2>
         <button
           class="btn btn-link text-muted p-0"
           @click="mobileMenuOpen = !mobileMenuOpen"
@@ -83,7 +87,7 @@
       </div>
     </nav>
 
-    <!-- Mobile Bottom Navigation -->
+    <!-- Mobile Bottom Nav -->
     <div v-if="!mobileMenuOpen" class="d-md-none fixed-bottom bg-white border-top shadow-sm" style="z-index: 1050;">
       <div class="d-flex justify-content-around align-items-center py-2">
         <router-link
@@ -119,7 +123,7 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "./js/config.js";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -128,12 +132,19 @@ const router = useRouter();
 const user = ref(null);
 const mobileMenuOpen = ref(false);
 
-const navItems = [
-  { id: "pantry", label: "Pantry", icon: "bi bi-cart", path: "/pantry" },
-  { id: "recipes", label: "Recipes", icon: "bi bi-egg-fried", path: "/recipe" },
-  { id: "planner", label: "Planner", icon: "bi bi-calendar", path: "/planner" },
-  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard" },
+const allNavItems = [
+  { id: "pantry", label: "Pantry", icon: "bi bi-cart", path: "/pantry", requiresAuth: true },
+  { id: "recipes", label: "Recipes", icon: "bi bi-egg-fried", path: "/recipe", requiresAuth: false },
+  { id: "planner", label: "Planner", icon: "bi bi-calendar", path: "/planner", requiresAuth: true },
+  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard", requiresAuth: true },
 ];
+
+const navItems = computed(() => {
+  if (user.value) {
+    return allNavItems;
+  }
+  return allNavItems.filter(item => !item.requiresAuth);
+});
 
 let unsubscribe;
 onMounted(() => {

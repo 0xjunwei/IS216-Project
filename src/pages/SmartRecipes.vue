@@ -258,6 +258,11 @@ const showExpiryModal = ref(false)
 const editingIngredient = ref(null)
 const tempExpiryDate = ref('')
 
+// might add, NFT for user whom make use of their ingredient list, with high sustainability scoring, > 80% score and utilize
+// Mint a NFT to their wallet or smth?
+// If user is logged in, then when viewing the recipe, allow them to decrement the items from the pantry?
+
+
 function addCustomIngredient() {
   if (!customIngredient.value.trim()) return
   
