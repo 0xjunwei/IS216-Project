@@ -166,6 +166,9 @@ function handleMobileNavigate(path) {
 </script>
 
 <style>
+body, * {
+  font-family: 'Roboto';
+}
 /* Light theme styling */
 .bg-light {
   background-color: #f8f9fa !important;
