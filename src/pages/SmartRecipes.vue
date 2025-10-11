@@ -1,104 +1,167 @@
 <template>
-  <div class="min-vh-100 bg-light content-under-nav">
-    <!-- Header -->
+  <div class="container-fluid px-3 py-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-10 col-xl-8">
+        <div class="mb-4">
+          <h1 class="h3 fw-bold mb-2">Recipe Suggestions</h1>
+          <p class="text-muted">Discover delicious recipes using what you already have.</p>
+        </div>
 
-    <div class="container py-4 pt-5">
-      <div class="row g-4">
-        <!-- Pantry Column -->
-        <div class="col-12 col-lg-4">
-          <div class="card surface-card glass-card shadow-sm border-0">
-            <div class="card-body">
-              <h5 class="card-title mb-3">Your Pantry</h5>
-              <form @submit.prevent="addItem" class="row g-2 align-items-end">
-                <div class="col-12">
-                  <label class="form-label">Ingredient name</label>
-                  <input v-model.trim="newItem.name" type="text" class="form-control" placeholder="e.g., chicken breast" required />
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Qty</label>
-                  <input v-model.number="newItem.qty" type="number" min="1" class="form-control" placeholder="1" />
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Unit</label>
-                  <input v-model.trim="newItem.unit" type="text" class="form-control" placeholder="pcs / g / ml" />
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Expiry date</label>
-                  <input v-model="newItem.expiry" type="date" class="form-control" />
-                </div>
-                <div class="col-12 d-flex gap-2">
-                  <button class="btn btn-glow" type="submit">Add to pantry</button>
-                  <button v-if="user" class="btn btn-glow" type="button" @click="retrievePantry">Retrieve Pantry</button>
-                  <button class="btn btn-glass" type="button" @click="clearPantry" :disabled="!pantry.length">Clear</button>
-                </div>
-              </form>
-
-              <hr />
-
-              <div v-if="!pantry.length" class="text-muted small">No items yet. Add a few ingredients to get smart suggestions.</div>
-
-              <ul v-else class="list-group list-group-flush">
-                <li v-for="item in pantrySorted" :key="item.id" class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <div class="fw-semibold text-capitalize">{{ item.name }}</div>
-                    <div class="small text-muted">
-                      <span v-if="item.qty">{{ item.qty }} {{ item.unit }}</span>
-                      <span v-if="item.expiry"> • Expires {{ formatRelative(item.expiry) }}</span>
-                      <span v-else> • No expiry</span>
-                    </div>
-                  </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <span v-if="isExpiringSoon(item)" class="badge bg-warning text-dark">expiring soon</span>
-                    <button class="btn btn-sm btn-outline-danger" @click="removeItem(item.id)">Remove</button>
-                  </div>
-                </li>
-              </ul>
+        <!-- Select Your Ingredients Card -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+              <div class="flex-grow-1 me-3">
+                <h2 class="h5 fw-semibold mb-1">Select Your Ingredients</h2>
+                <p class="text-muted small">Add ingredients manually or import from your pantry.</p>
+              </div>
+              <button 
+                v-if="user"
+                @click="retrievePantry"
+                class="btn btn-success btn-sm mt-2 mt-md-0"
+              >
+                <i class="bi bi-cart me-2"></i>
+                Import from Pantry
+              </button>
             </div>
-          </div>
 
-          <div class="mt-3">
-            <label class="form-label">Days considered "expiring soon"</label>
-            <input type="range" class="form-range" min="1" max="14" v-model.number="expiringWindowDays" />
-            <div class="small text-muted">{{ expiringWindowDays }} day(s)</div>
-          </div>
+            <!-- Add Custom Ingredients -->
+            <div class="add-ingredient-wrapper mb-4">
+              <input
+                v-model="customIngredient"
+                type="text"
+                class="form-control"
+                placeholder="e.g., Garlic, Onions, Pasta..."
+                @keyup.enter="addCustomIngredient"
+              />
+              <button 
+                @click="addCustomIngredient"
+                class="btn btn-success add-btn"
+                type="button"
+                :disabled="!customIngredient.trim()"
+              >
+                +
+              </button>
+            </div>
 
-          <div class="d-grid gap-2 mt-3">
-            <button class="btn btn-glow" :disabled="!pantry.length || loading" @click="findRecipes">
-              <span v-if="!loading">Find Recipes</span>
-              <span v-else class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            </button>
+            <!-- Selected Ingredients Display -->
+            <div v-if="selectedIngredients.length === 0" class="text-center py-5">
+              <i class="bi bi-cart text-muted" style="font-size: 4rem;"></i>
+              <p class="text-muted mt-3">No ingredients selected. Add custom ingredients or import from your pantry.</p>
+            </div>
+            <div v-else class="d-flex flex-wrap gap-2">
+              <span
+                v-for="ingredient in selectedIngredients"
+                :key="ingredient.id"
+                :class="[
+                  'badge ingredient-badge d-inline-flex align-items-center',
+                  isExpired(ingredient) ? 'bg-danger-subtle text-danger-emphasis' : 
+                  isExpiringSoon(ingredient) ? 'bg-warning-subtle text-warning-emphasis' : 
+                  'bg-success-subtle text-success-emphasis'
+                ]"
+                @click="openExpiryModal(ingredient)"
+                :title="ingredient.expiry ? (isExpired(ingredient) ? `Expired: ${ingredient.expiry}` : `Expires: ${ingredient.expiry}`) : 'Click to set expiry date'"
+              >
+                <i v-if="isExpired(ingredient)" class="bi bi-x-circle me-1"></i>
+                <i v-else-if="isExpiringSoon(ingredient)" class="bi bi-clock-history me-1"></i>
+                {{ ingredient.name }}
+                <button 
+                  class="btn-remove"
+                  @click.stop="removeIngredient(ingredient.id)"
+                  title="Remove ingredient"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- Results Column -->
-        <div class="col-12 col-lg-8">
-          <div class="card surface-card glass-card shadow-sm border-0 p-4">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="mb-0">Suggestions</h5>
-                <div class="d-flex gap-2">
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="zeroWasteOnly" v-model="zeroWasteOnly">
-                    <label class="form-check-label" for="zeroWasteOnly">Zero‑waste only</label>
+        <!-- Expiry Date Modal -->
+        <div v-if="showExpiryModal" class="modal-overlay" @click="closeExpiryModal">
+          <div class="modal-content" @click.stop>
+            <h5 class="mb-3">Set Expiry Date for {{ editingIngredient?.name }}</h5>
+            <div class="mb-3">
+              <label class="form-label">Expiry Date</label>
+              <input 
+                type="date" 
+                class="form-control" 
+                v-model="tempExpiryDate"
+                :min="getTodayDate()"
+              />
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary" @click="closeExpiryModal">Cancel</button>
+              <button class="btn btn-danger" @click="clearExpiryDate" v-if="editingIngredient?.expiry">Clear Date</button>
+              <button class="btn btn-success" @click="saveExpiryDate">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ready to Find Recipes Card -->
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
+            <div class="text-center mb-4">
+              <i class="bi bi-egg-fried text-muted mb-3" style="font-size: 4rem;"></i>
+              <h2 class="h5 fw-semibold mb-2">Ready to Find Recipes?</h2>
+              <p class="text-muted mb-0">
+                Select ingredients from your pantry or add custom ingredients, then click 'Find Recipes' to discover delicious meals you can make.
+              </p>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="d-flex flex-wrap gap-3 justify-content-center mb-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="zeroWasteOnly" v-model="zeroWasteOnly">
+                <label class="form-check-label" for="zeroWasteOnly">
+                  <i class="bi bi-recycle me-1"></i>
+                  Zero-waste only
+                </label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="prioritizeExpiring" v-model="prioritizeExpiring">
+                <label class="form-check-label" for="prioritizeExpiring">
+                  <i class="bi bi-clock-history me-1"></i>
+                  Prioritize expiring soon
+                </label>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+              <button 
+                @click="findRecipes"
+                :disabled="selectedIngredients.length === 0 || loading"
+                class="btn btn-success"
+              >
+                <span v-if="!loading">Find Recipes</span>
+                <span v-else class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              </button>
+              <button 
+                @click="clearPantry"
+                :disabled="selectedIngredients.length === 0"
+                class="btn btn-outline-secondary"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Display -->
+        <div v-if="error" class="alert alert-danger mt-4">{{ error }}</div>
+
+        <!-- Recipe Results -->
+        <div v-if="recipes.length > 0" class="mt-4">
+          <h2 class="h4 fw-bold mb-3">Recipe Results</h2>
+          <div class="row g-3">
+            <div v-for="recipe in filteredRecipes" :key="recipe.id" class="col-12">
+              <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="row g-0">
+                  <div class="col-12 col-sm-4">
+                    <img :src="recipe.image" :alt="recipe.title" class="w-100 h-100 object-fit-cover" />
                   </div>
-                </div>
-              </div>
-
-              <div v-if="!recipes.length && !loading" class="text-muted small">
-                No recipes yet. Click <span class="fw-semibold">Find Recipes</span> to search based on your pantry.
-              </div>
-
-              <div v-if="error" class="alert alert-danger">{{ error }}</div>
-
-              <div class="row g-3">
-                <div v-for="recipe in filteredRecipes" :key="recipe.id" class="col-12">
-                  <div class="card border-0 shadow-sm overflow-hidden">
-                    <div class="row g-0">
-                      <div class="col-12 col-sm-4">
-                        <img :src="recipe.image" :alt="recipe.title" class="w-100 h-100 object-fit-cover" />
-                      </div>
-                      <div class="col-12 col-sm-8">
-                        <div class="card-body">
+                  <div class="col-12 col-sm-8">
+                    <div class="card-body">
                       <div class="d-flex align-items-center gap-2 mb-1">
                         <h5 class="card-title mb-0">{{ recipe.title }}</h5>
                         <span v-if="recipe.zeroWaste" class="badge bg-success">Zero‑waste</span>
@@ -143,23 +206,21 @@
                       <transition name="fade">
                         <div v-if="recipe.showDetails" class="mt-3 small">
                           <div class="mb-2"><span class="fw-semibold">Uses from pantry:</span> {{ listNames(recipe.usedIngredients) }}</div>
-                          <div class="mb-2" v-if="recipe.expiringMatched.length"><span class="fw-semibold">Uses expiring soon:</span> {{ listNames(recipe.expiringMatched) }}</div>
                           <div class="mb-2" v-if="recipe.missedIngredients?.length"><span class="fw-semibold">Missing:</span> {{ listNames(recipe.missedIngredients) }}</div>
                           <div class="text-muted">ID: {{ recipe.id }}</div>
                         </div>
                       </transition>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div v-if="loading" class="d-flex justify-content-center py-5">
-                <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
-              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div v-if="loading" class="d-flex justify-content-center py-5">
+          <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
         </div>
       </div>
     </div>
@@ -186,61 +247,95 @@ onMounted(() => {
 onUnmounted(() => {if (unsub) unsub()});
 
 
-// Daily limit of 50 too low, have to find another service or pay for it, Estimate 2 queries per day
-// May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing
-// Use ENV file to protect key
 const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY
 
-// Pantry state
 let nextId = 1
-const pantry = ref([])
-const expiringWindowDays = ref(7)
+const selectedIngredients = ref([])
 const zeroWasteOnly = ref(false)
+const prioritizeExpiring = ref(false)
+const customIngredient = ref('')
+const showExpiryModal = ref(false)
+const editingIngredient = ref(null)
+const tempExpiryDate = ref('')
 
-const newItem = ref({ name: '', qty: 1, unit: '', expiry: '' })
+function addCustomIngredient() {
+  if (!customIngredient.value.trim()) return
+  
+  const ingredientName = customIngredient.value.trim().toLowerCase()
+  const exists = selectedIngredients.value.find(i => i.name === ingredientName)
+  
+  if (!exists) {
+    selectedIngredients.value.push({
+      id: nextId++,
+      name: ingredientName,
+      expiry: null
+    })
+  }
+  
+  customIngredient.value = ''
+}
 
-function addItem() {
-  if (!newItem.value.name) return
-  pantry.value.push({
-    id: nextId++,
-    name: newItem.value.name.toLowerCase(),
-    qty: newItem.value.qty || 1,
-    unit: newItem.value.unit || '',
-    expiry: newItem.value.expiry || null,
-  })
-  newItem.value = { name: '', qty: 1, unit: '', expiry: '' }
+function removeIngredient(id) {
+  selectedIngredients.value = selectedIngredients.value.filter(i => i.id !== id)
 }
-function removeItem(id) {
-  pantry.value = pantry.value.filter(i => i.id !== id)
-}
+
 function clearPantry() {
-  pantry.value = []
+  selectedIngredients.value = []
 }
 
-const pantrySorted = computed(() => {
-  return [...pantry.value].sort((a, b) => (a.expiry || '').localeCompare(b.expiry || ''))
-})
-
-function daysUntil(dateStr) {
-  if (!dateStr) return Infinity
-  const d = new Date(dateStr)
-  const now = new Date()
-  return Math.ceil((d - now) / (1000 * 60 * 60 * 24))
-}
-function isExpiringSoon(item) {
-  return daysUntil(item.expiry) <= expiringWindowDays.value
-}
-function formatRelative(dateStr) {
-  if (!dateStr) return 'later'
-  const d = daysUntil(dateStr)
-  if (d === Infinity) return 'later'
-  if (d < 0) return `${Math.abs(d)} day(s) ago`
-  if (d === 0) return 'today'
-  if (d === 1) return 'tomorrow'
-  return `in ${d} day(s)`
+function openExpiryModal(ingredient) {
+  editingIngredient.value = ingredient
+  tempExpiryDate.value = ingredient.expiry || ''
+  showExpiryModal.value = true
 }
 
-// Recipe search
+function closeExpiryModal() {
+  showExpiryModal.value = false
+  editingIngredient.value = null
+  tempExpiryDate.value = ''
+}
+
+function saveExpiryDate() {
+  if (editingIngredient.value) {
+    editingIngredient.value.expiry = tempExpiryDate.value
+  }
+  closeExpiryModal()
+}
+
+function clearExpiryDate() {
+  if (editingIngredient.value) {
+    editingIngredient.value.expiry = null
+  }
+  closeExpiryModal()
+}
+
+function getTodayDate() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function isExpired(ingredient) {
+  if (!ingredient.expiry) return false
+  const expiryDate = new Date(ingredient.expiry)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  expiryDate.setHours(0, 0, 0, 0)
+  return expiryDate < today
+}
+
+function isExpiringSoon(ingredient) {
+  if (!ingredient.expiry) return false
+  if (isExpired(ingredient)) return false
+  const expiryDate = new Date(ingredient.expiry)
+  const today = new Date()
+  const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+  return diffDays >= 0 && diffDays <= 3
+}
+
+function getExpiringIngredients() {
+  return selectedIngredients.value.filter(isExpiringSoon)
+}
+
+
 const recipes = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -252,86 +347,76 @@ const filteredRecipes = computed(() => {
 function listNames(arr = []) {
   return arr.map(i => i.name).join(', ')
 }
-// ? to handle if the value is missing the dont throw an error, learnt from bootdev
+
 function displayNutrient(recipe, name) {
-  const n = recipe?.nutrition?.nutrients?.find(n => n.name === name)
-  if (!n) return '—'
-  // Calories often uses unit 'kcal'; others g.
-  const value = Math.round(n.amount)
-  const unit = n.unit?.toLowerCase() === 'kcal' ? '' : n.unit
+  const nutrient = recipe?.nutrition?.nutrients?.find(n => n.name === name)
+  if (!nutrient) return '—'
+  const value = Math.round(nutrient.amount)
+  const unit = nutrient.unit?.toLowerCase() === 'kcal' ? '' : nutrient.unit
   return unit ? `${value}${unit}` : `${value}`
 }
 
-// heuristic calc
-function computeSustainabilityScore(recipe, pantryItems, expiringSoonSet) {
-  // Heuristic (0–100):
-  // 50 pts: % of ingredients that are from pantry
-  // 30 pts: uses expiring‑soon items (proportional to count)
-  // 20 pts: fewer missing ingredients
+function computeSustainabilityScore(recipe, pantryItems, expiringIngredients = []) {
   const total = (recipe.usedIngredients?.length || 0) + (recipe.missedIngredients?.length || 0)
-  const pantryUsageRatio = total ? (recipe.usedIngredients?.length || 0) / total : 0
-
-  const expiringMatches = (recipe.usedIngredients || []).filter(i => expiringSoonSet.has(i.name?.toLowerCase()))
-  const expiringRatio = pantryItems.length ? expiringMatches.length / pantryItems.length : 0
-
+  const pantryRatio = total ? (recipe.usedIngredients?.length || 0) / total : 0
   const missingPenalty = total ? 1 - ((recipe.missedIngredients?.length || 0) / total) : 1
 
-  let score = Math.round(50 * pantryUsageRatio + 30 * expiringRatio + 20 * missingPenalty)
+  const expiringNames = new Set(expiringIngredients.map(i => i.name.toLowerCase()))
+  const usesExpiring = (recipe.usedIngredients || []).filter(i => 
+    expiringNames.has(i.name?.toLowerCase())
+  )
+  const expiringBonus = expiringIngredients.length > 0 ? 
+    usesExpiring.length / expiringIngredients.length : 0
+
+  let score = Math.round(50 * pantryRatio + 30 * missingPenalty + 20 * expiringBonus)
   score = Math.max(0, Math.min(100, score))
-  return { score, expiringMatches }
+  
+  return { score, usesExpiring }
 }
 
 async function findRecipes() {
   error.value = ''
   recipes.value = []
   if (!API_KEY) {
-    error.value = 'Missing API key. Please pass it'
+    error.value = 'Missing API key'
     return
   }
-  if (!pantry.value.length) return
+  if (!selectedIngredients.value.length) return
 
   loading.value = true
   try {
-    // Use findByIngredients to get matches + used/missed ingredient breakdown
-    //https://spoonacular.com/food-api/docs#Search-Recipes-by-Ingredients
-    const ingredientList = pantry.value.map(i => encodeURIComponent(i.name)).join(',')
+    const ingredientList = selectedIngredients.value.map(i => encodeURIComponent(i.name)).join(',')
     const res = await fetch(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=12&ranking=1&ignorePantry=true&apiKey=${API_KEY}`)
+    
     if (!res.ok && res.status == 402) {
-      throw new Error(`API Limit reached, change key / contact team`);
+      throw new Error('API limit reached');
     } else if (!res.ok) {
-      console.log(typeof(res.status));
-      throw new Error(`findByIngredients failed: ${res.status}`);
+      throw new Error(`Request failed: ${res.status}`);
     }
+    
     const base = await res.json()
+    const expiringIngredients = prioritizeExpiring.value ? getExpiringIngredients() : []
 
-    // build a quick set for expiring‑soon items
-    const expiringSoonSet = new Set(
-      pantry.value.filter(isExpiringSoon).map(i => i.name.toLowerCase())
-    )
-
-    // for each recipe, fetch detailed info + nutrition
     const details = await Promise.all(
       base.map(async (r) => {
         const infoRes = await fetch(`https://api.spoonacular.com/recipes/${r.id}/information?includeNutrition=true&apiKey=${API_KEY}`)
-        if (!infoRes.ok && infoRes.status == 402) {
-          throw new Error(`API Key exhuasted`); 
-        }
-        else if (!infoRes.ok) {
-          throw new Error(`information failed for ${infoRes.status}`)
+        if (!infoRes.ok) {
+          throw new Error('Failed to fetch recipe details')
         }
         const info = await infoRes.json()
 
-        // Merge fields from base (has used/missed) with info (has nutrition)
-        const usedIngredients = (r.usedIngredients || []).map(x => ({ name: x.name, amount: x.amount, unit: x.unit }))
-        const missedIngredients = (r.missedIngredients || []).map(x => ({ name: x.name, amount: x.amount, unit: x.unit }))
+        const usedIngredients = (r.usedIngredients || []).map(x => ({ 
+          name: x.name, amount: x.amount, unit: x.unit 
+        }))
+        const missedIngredients = (r.missedIngredients || []).map(x => ({ 
+          name: x.name, amount: x.amount, unit: x.unit 
+        }))
 
-        const { score, expiringMatches } = computeSustainabilityScore(
+        const { score, usesExpiring } = computeSustainabilityScore(
           { ...r, usedIngredients, missedIngredients },
-          pantry.value,
-          expiringSoonSet
+          selectedIngredients.value,
+          expiringIngredients
         )
-        
-        const zeroWaste = expiringMatches.length >= Math.max(1, Math.floor(pantry.value.filter(isExpiringSoon).length * 0.3))
 
         return {
           id: r.id,
@@ -344,18 +429,27 @@ async function findRecipes() {
           missedIngredients,
           usedIngredientCount: r.usedIngredientCount,
           missedIngredientCount: r.missedIngredientCount,
-          nutrition: info.nutrition, // includes nutrients array
+          nutrition: info.nutrition,
           sustainabilityScore: score,
-          expiringMatched: expiringMatches,
-          zeroWaste,
+          usesExpiring: usesExpiring.length,
+          zeroWaste: r.missedIngredientCount === 0,
           showDetails: false,
         }
       })
     )
 
-    // Sort: zero‑waste first, then higher sustainability, then fewer missing
-    recipes.value = details
-      .sort((a, b) => (b.zeroWaste - a.zeroWaste) || (b.sustainabilityScore - a.sustainabilityScore) || (a.missedIngredientCount - b.missedIngredientCount))
+    recipes.value = details.sort((a, b) => {
+      if (zeroWasteOnly.value && a.zeroWaste !== b.zeroWaste) {
+        return b.zeroWaste - a.zeroWaste
+      }
+      if (prioritizeExpiring.value && a.usesExpiring !== b.usesExpiring) {
+        return b.usesExpiring - a.usesExpiring
+      }
+      if (a.sustainabilityScore !== b.sustainabilityScore) {
+        return b.sustainabilityScore - a.sustainabilityScore
+      }
+      return a.missedIngredientCount - b.missedIngredientCount
+    })
   } catch (e) {
     error.value = e.message || 'Failed to fetch recipes.'
   } finally {
@@ -380,8 +474,20 @@ async function retrievePantry() {
     if (snapshot.exists()) {
       const data = snapshot.data();
       console.log("Retrieved pantry:", data.pantry);
-      // Optional: replace your local pantry with it
-      pantry.value = data.pantry || [];
+      // Import pantry items into selectedIngredients
+      const pantryItems = data.pantry || [];
+      // Merge with existing ingredients, avoiding duplicates
+      const existingNames = new Set(selectedIngredients.value.map(i => i.name.toLowerCase()));
+      pantryItems.forEach(item => {
+        const itemName = item.name.toLowerCase();
+        if (!existingNames.has(itemName)) {
+          selectedIngredients.value.push({
+            id: nextId++,
+            name: itemName,
+            expiry: item.expiry || null // Preserve expiry date if available
+          });
+        }
+      });
     } else {
       console.log("No pantry found for this user.");
     }
@@ -421,184 +527,298 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
 </script>
 
 <style scoped>
-/* Animated gradient background + glows (glassmorphism vibe) */
-.min-vh-100 {
-  background: linear-gradient(135deg, #1b1b1b, #111018) !important;
-  color: #f5f5f5 !important;
-  font-family: "Inter", "Segoe UI", sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-.min-vh-100::before,
-.min-vh-100::after {
-  content: "";
-  position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 60%;
-  background:
-    radial-gradient(60% 60% at 20% 30%, rgba(102, 126, 234, 0.22) 0%, rgba(0,0,0,0) 70%),
-    radial-gradient(50% 50% at 80% 20%, rgba(118, 75, 162, 0.18) 0%, rgba(0,0,0,0) 70%);
-  filter: blur(60px);
-  pointer-events: none;
-  animation: floatGlow 18s ease-in-out infinite alternate;
-}
-.min-vh-100::after {
-  inset: auto -10% -30% -10%;
-  height: 70%;
-  background:
-    radial-gradient(50% 50% at 80% 80%, rgba(46, 204, 113, 0.16) 0%, rgba(0,0,0,0) 70%),
-    radial-gradient(60% 60% at 10% 90%, rgba(0, 184, 148, 0.18) 0%, rgba(0,0,0,0) 70%);
-}
-@keyframes floatGlow {
-  0% { transform: translateY(0) }
-  100% { transform: translateY(10px) }
-}
-
-/* Push page content below the fixed navbar without moving the background layers at <body> level */
-.content-under-nav {
-  padding-top: 88px;
-}
-@media (min-width: 992px) {
-  .content-under-nav { padding-top: 5em; }
-}
-
-/* Override Bootstrap light backgrounds */
-.bg-light {
-  background: #1e1e1e !important;
-  color: #f5f5f5 !important;
-}
-
+/* Light theme styling */
 .card {
-  background: #1e1e1e !important;
-  color: #f5f5f5 !important;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  border-radius: 0.5rem;
+  transition: box-shadow 0.3s ease;
 }
 
-
-
-/* List items */
-.list-group-item {
-  background: #1e1e1e !important;
-  color: #ddd !important;
-  border-color: #2a2a2a !important;
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Forms */
-.form-label {
-  color: #ccc !important;
+/* Add ingredient input wrapper */
+.add-ingredient-wrapper {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
+.add-ingredient-wrapper .form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-ingredient-wrapper .add-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: #198754 !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-ingredient-wrapper .add-btn:hover:not(:disabled) {
+  background-color: #157347 !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.add-ingredient-wrapper .add-btn {
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.add-ingredient-wrapper .add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form inputs */
 .form-control {
-  background: #2a2a2a !important;
-  color: #ffffff !important; /* main text */
-  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-/* Placeholder styling */
-.form-control::placeholder {
-  color: #bbbbbb !important; /* lighter grey */
-  opacity: 1; /* ensure it’s visible */
-}
-
-/* Input on focus */
 .form-control:focus {
-  background: #333 !important;
-  color: #ffffff !important;
-  border-color: #00cec9 !important;
-  box-shadow: 0 0 0 0.2rem rgba(0, 206, 201, 0.25);
+  border-color: #198754;
+  box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
 }
 
 /* Buttons */
 .btn {
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
 }
-.btn-primary {
-  background: linear-gradient(90deg, #00b894, #00cec9);
-  border: none;
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
 }
-.btn-primary:hover {
-  background: linear-gradient(90deg, #00cec9, #00b894);
-}
+
 .btn-success {
-  background: linear-gradient(90deg, #27ae60, #2ecc71);
-  border: none;
+  background-color: #198754;
+  border-color: #198754;
 }
-.btn-success:hover {
-  background: linear-gradient(90deg, #2ecc71, #27ae60);
+
+.btn-success:hover:not(:disabled) {
+  background-color: #157347;
+  border-color: #146c43;
 }
-.btn-outline-secondary {
-  border-color: #888;
-  color: #ddd;
+
+.btn-success:disabled {
+  opacity: 0.6;
 }
+
 .btn-outline-secondary:hover {
-  background: #444;
+  background-color: #6c757d;
+  border-color: #6c757d;
   color: #fff;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
+/* List items */
+.list-group-item {
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Ingredient badges */
+.ingredient-badge {
+  padding: 0.5em 0.75em;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  padding-right: 2rem;
+}
+
+.ingredient-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ingredient-badge.bg-success-subtle {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.ingredient-badge.bg-success-subtle:hover {
+  background-color: #c1d7cd;
+}
+
+.ingredient-badge.bg-warning-subtle {
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffecb5;
+}
+
+.ingredient-badge.bg-warning-subtle:hover {
+  background-color: #ffe3ad;
+}
+
+.ingredient-badge.bg-danger-subtle {
+  background-color: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
+}
+
+.ingredient-badge.bg-danger-subtle:hover {
+  background-color: #f1c0c4;
+}
+
+.ingredient-badge .btn-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ingredient-badge .btn-remove:hover {
+  opacity: 1;
+  color: #dc3545;
+  transform: translateY(-50%) scale(1.2);
+}
+
+.badge.bg-warning {
+  color: #000;
 }
 
 /* Progress bar */
 .progress {
-  background: #2a2a2a !important;
+  height: 0.5rem;
+  border-radius: 0.25rem;
 }
+
 .progress-bar {
-  background: linear-gradient(90deg, #6c5ce7, #00cec9) !important;
+  background-color: #198754;
 }
 
-/* Switch and muted text */
-.form-check-label {
-  color: #ccc !important;
-}
-.text-muted {
-  color: #aaa !important;
+/* Form range slider */
+.form-range::-webkit-slider-thumb {
+  background-color: #198754;
 }
 
-/* Nutrition + sustainability boxes */
-.border {
-  border-color: #333 !important;
+.form-range::-moz-range-thumb {
+  background-color: #198754;
 }
 
-/* Translucent surface used for the two main sections */
-.surface-card {
-  background: rgba(30,30,30,0.7) !important;
-  backdrop-filter: saturate(140%) blur(12px);
-  -webkit-backdrop-filter: saturate(140%) blur(12px);
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset !important;
+/* Transitions */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s;
 }
 
-/* Glass accents for buttons/cards per provided mock */
-.btn-glow {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 0.6rem 1rem;
-  font-weight: 600;
-  position: relative;
-  overflow: hidden;
-}
-.btn-glow::before {
-  content: "";
-  position: absolute;
-  top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-  transition: left .6s ease;
-}
-.btn-glow:hover::before { left: 100%; }
-.btn-glow:hover { filter: brightness(1.05); box-shadow: 0 10px 25px rgba(102,126,234,.35); }
-
-.btn-glass {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff;
-  border-radius: 12px;
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
-.btn-glass:hover { background: rgba(255, 136, 90, 0.894); }
+/* Recipe card images */
+.object-fit-cover {
+  object-fit: cover;
+}
 
+/* Spinner */
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* Modal styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .add-ingredient-wrapper {
+    gap: 6px;
+  }
+  
+  .add-ingredient-wrapper .add-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    font-size: 1.4rem !important;
+  }
+  
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+  }
+  
+  .btn-sm {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 </style>
