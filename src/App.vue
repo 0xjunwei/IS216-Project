@@ -132,33 +132,44 @@ const router = useRouter();
 const user = ref(null);
 const mobileMenuOpen = ref(false);
 
+// Navigation items with authentication requirements
 const allNavItems = [
   { id: "pantry", label: "Pantry", icon: "bi bi-cart", path: "/pantry", requiresAuth: true },
   { id: "recipes", label: "Recipes", icon: "bi bi-egg-fried", path: "/recipe", requiresAuth: false },
   { id: "planner", label: "Planner", icon: "bi bi-calendar", path: "/planner", requiresAuth: true },
-  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard", requiresAuth: true },
+  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard", requiresAuth: true }
 ];
 
+// Filter navigation based on login status
 const navItems = computed(() => {
   if (user.value) {
+    // Show all items when logged in
     return allNavItems;
   }
+  // Only show items that don't require auth
   return allNavItems.filter(item => !item.requiresAuth);
 });
 
-let unsubscribe;
+// Listen for auth changes
+let authListener;
 onMounted(() => {
-  unsubscribe = onAuthStateChanged(auth, (uid) => {
-    user.value = uid;
+  authListener = onAuthStateChanged(auth, (currentUser) => {
+    user.value = currentUser;
   });
 });
-onUnmounted(() => { if (unsubscribe) unsubscribe()});
 
+// Clean up listener
+onUnmounted(() => {
+  if (authListener) authListener();
+});
+
+// Logout function
 async function logout() {
   await signOut(auth);
   router.push("/login");
 }
 
+// Navigate and close mobile menu
 function handleMobileNavigate(path) {
   mobileMenuOpen.value = false;
   router.push(path);
