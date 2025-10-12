@@ -14,7 +14,7 @@
               <div class="flex-grow-1 me-3">
                 <h2 class="h5 fw-semibold mb-1">Select Your Ingredients</h2>
                 <p class="text-muted small">Add ingredients manually or import from your pantry.</p>
-              </div>
+                </div>
               <button 
                 v-if="user"
                 @click="retrievePantry"
@@ -23,7 +23,7 @@
                 <i class="bi bi-cart me-2"></i>
                 Import from Pantry
               </button>
-            </div>
+                </div>
 
             <!-- Add Custom Ingredients -->
             <div class="add-ingredient-wrapper mb-4">
@@ -42,13 +42,13 @@
               >
                 +
               </button>
-            </div>
+                </div>
 
             <!-- Selected Ingredients Display -->
             <div v-if="selectedIngredients.length === 0" class="text-center py-5">
               <i class="bi bi-cart text-muted" style="font-size: 4rem;"></i>
               <p class="text-muted mt-3">No ingredients selected. Add custom ingredients or import from your pantry.</p>
-            </div>
+                </div>
             <div v-else class="d-flex flex-wrap gap-2">
               <span
                 v-for="ingredient in selectedIngredients"
@@ -73,7 +73,7 @@
                   ×
                 </button>
               </span>
-            </div>
+                </div>
           </div>
         </div>
 
@@ -98,6 +98,79 @@
           </div>
         </div>
 
+        <!-- Deduct Ingredients Modal -->
+        <div v-if="showDeductModal" class="modal-overlay" @click="closeDeductModal">
+          <div class="modal-content-large" @click.stop>
+            <h5 class="mb-3">Use Ingredients for {{ deductingRecipe?.title }}</h5>
+            <p class="text-muted small mb-3">Adjust quantities to deduct from your pantry</p>
+            
+            <div class="mb-3" style="max-height: 400px; overflow-y: auto;">
+              <div 
+                v-for="ingredient in deductIngredientsList" 
+                :key="ingredient.name"
+                class="card mb-2"
+              >
+                <div class="card-body p-3">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                      <strong>{{ ingredient.name }}</strong>
+                    <div class="small text-muted">
+                        Recipe needs: {{ ingredient.amount }} {{ ingredient.unit }}
+                    </div>
+                      <div class="small text-muted">
+                        In pantry: {{ ingredient.pantryQuantity || 0 }} {{ ingredient.pantryUnit || ingredient.unit }}
+                  </div>
+                  </div>
+                    <div class="form-check">
+                      <input 
+                        class="form-check-input" 
+                        type="checkbox" 
+                        :id="'use-' + ingredient.name"
+                        v-model="ingredient.selected"
+                      />
+                      <label class="form-check-label" :for="'use-' + ingredient.name">
+                        Use
+                      </label>
+            </div>
+          </div>
+
+                  <div v-if="ingredient.selected" class="row g-2">
+                    <div class="col-6">
+                      <label class="form-label small">Amount to deduct</label>
+                      <input 
+                        type="number" 
+                        class="form-control form-control-sm" 
+                        v-model.number="ingredient.deductAmount"
+                        :min="0"
+                        step="0.1"
+                      />
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label small">Unit</label>
+                      <input 
+                        type="text" 
+                        class="form-control form-control-sm" 
+                        v-model="ingredient.deductUnit"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary" @click="closeDeductModal">Cancel</button>
+              <button 
+                class="btn btn-success" 
+                @click="confirmDeductIngredients"
+                :disabled="!deductIngredientsList.some(i => i.selected)"
+              >
+                Confirm Usage
+            </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Ready to Find Recipes Card -->
         <div class="card shadow-sm">
           <div class="card-body p-4">
@@ -111,21 +184,21 @@
 
             <!-- Filter Options -->
             <div class="d-flex flex-wrap gap-3 justify-content-center mb-4">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="zeroWasteOnly" v-model="zeroWasteOnly">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="zeroWasteOnly" v-model="zeroWasteOnly">
                 <label class="form-check-label" for="zeroWasteOnly">
                   <i class="bi bi-recycle me-1"></i>
                   Zero-waste only
                 </label>
-              </div>
+                  </div>
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="prioritizeExpiring" v-model="prioritizeExpiring">
                 <label class="form-check-label" for="prioritizeExpiring">
                   <i class="bi bi-clock-history me-1"></i>
                   Prioritize expiring soon
                 </label>
+                </div>
               </div>
-            </div>
 
             <div class="d-flex gap-2 justify-content-center flex-wrap">
               <button 
@@ -145,7 +218,7 @@
               </button>
             </div>
           </div>
-        </div>
+              </div>
 
         <!-- Error Display -->
         <div v-if="error" class="alert alert-danger mt-4">{{ error }}</div>
@@ -153,15 +226,15 @@
         <!-- Recipe Results -->
         <div v-if="recipes.length > 0" class="mt-4">
           <h2 class="h4 fw-bold mb-3">Recipe Results</h2>
-          <div class="row g-3">
-            <div v-for="recipe in filteredRecipes" :key="recipe.id" class="col-12">
-              <div class="card border-0 shadow-sm overflow-hidden">
-                <div class="row g-0">
-                  <div class="col-12 col-sm-4">
-                    <img :src="recipe.image" :alt="recipe.title" class="w-100 h-100 object-fit-cover" />
-                  </div>
-                  <div class="col-12 col-sm-8">
-                    <div class="card-body">
+              <div class="row g-3">
+                <div v-for="recipe in filteredRecipes" :key="recipe.id" class="col-12">
+                  <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="row g-0">
+                      <div class="col-12 col-sm-4">
+                        <img :src="recipe.image" :alt="recipe.title" class="w-100 h-100 object-fit-cover" />
+                      </div>
+                      <div class="col-12 col-sm-8">
+                        <div class="card-body">
                       <div class="d-flex align-items-center gap-2 mb-1">
                         <h5 class="card-title mb-0">{{ recipe.title }}</h5>
                         <span v-if="recipe.zeroWaste" class="badge bg-success">Zero‑waste</span>
@@ -201,6 +274,14 @@
                         <button class="btn btn-outline-secondary btn-sm" @click="toggleDetails(recipe)">
                           {{ recipe.showDetails ? 'Hide' : 'Show' }} details
                         </button>
+                        <button 
+                          v-if="user"
+                          class="btn btn-success btn-sm"
+                          @click="openDeductModal(recipe)"
+                        >
+                          <i class="bi bi-dash-circle me-1"></i>
+                          Use Ingredients
+                        </button>
                       </div>
 
                       <transition name="fade">
@@ -211,16 +292,16 @@
                         </div>
                       </transition>
                     </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Loading Spinner -->
-        <div v-if="loading" class="d-flex justify-content-center py-5">
-          <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+              <div v-if="loading" class="d-flex justify-content-center py-5">
+                <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
         </div>
       </div>
     </div>
@@ -232,285 +313,552 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { auth, db } from "../js/config.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
+import axios from 'axios';
 
-// Check if user exists then show the retrieve button
-const user = ref(auth.currentUser);
-let unsub = null;
-// Based on https://firebase.google.com/docs/auth/web/start#sign_in_existing_users
-// Already in auth from config thus slight modification from the google version
+// Get API key from environment variables
+const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY;
+
+// Current user to show import button
+const user = ref(null);
+let authListener = null;
+
+// Listen for auth state changes
 onMounted(() => {
-  unsub = onAuthStateChanged(auth, (uid) => {
-    user.value = uid;
+  authListener = onAuthStateChanged(auth, (currentUser) => {
+    user.value = currentUser;
   });
 });
-// Incase to clear memory https://vuejs.org/api/composition-api-lifecycle
-onUnmounted(() => {if (unsub) unsub()});
+
+// Clean up listener when component unmounts
+onUnmounted(() => {
+  if (authListener) authListener();
+});
+
+let nextId = 1;
+const selectedIngredients = ref([]);
+const customIngredient = ref('');
+
+// Filter options
+const zeroWasteOnly = ref(false);
+const prioritizeExpiring = ref(false);
+
+// Modal states for expiry date and deduct ingredients
+const showExpiryModal = ref(false);
+const editingIngredient = ref(null);
+const tempExpiryDate = ref('');
+
+const showDeductModal = ref(false);
+const deductingRecipe = ref(null);
+const deductIngredientsList = ref([]);
+
+// Recipe data
+const recipes = ref([]);
+const loading = ref(false);
+const error = ref('');
 
 
-const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY
-
-let nextId = 1
-const selectedIngredients = ref([])
-const zeroWasteOnly = ref(false)
-const prioritizeExpiring = ref(false)
-const customIngredient = ref('')
-const showExpiryModal = ref(false)
-const editingIngredient = ref(null)
-const tempExpiryDate = ref('')
-
-// might add, NFT for user whom make use of their ingredient list, with high sustainability scoring, > 80% score and utilize
-// Mint a NFT to their wallet or smth?
-// If user is logged in, then when viewing the recipe, allow them to decrement the items from the pantry?
-
-
+// Add ingredient to list
 function addCustomIngredient() {
-  if (!customIngredient.value.trim()) return
-  
-  const ingredientName = customIngredient.value.trim().toLowerCase()
-  const exists = selectedIngredients.value.find(i => i.name === ingredientName)
-  
-  if (!exists) {
-    selectedIngredients.value.push({
-      id: nextId++,
-      name: ingredientName,
-      expiry: null
-    })
+  if (!customIngredient.value.trim()) {
+    return;
   }
   
-  customIngredient.value = ''
+  const ingredientName = customIngredient.value.trim().toLowerCase();
+  const alreadyExists = selectedIngredients.value.find(item => item.name === ingredientName);
+  
+  if (!alreadyExists) {
+    selectedIngredients.value.push({
+    id: nextId++,
+      name: ingredientName,
+      expiry: null,
+      fromPantry: false
+    });
+  }
+  
+  customIngredient.value = '';
 }
 
 function removeIngredient(id) {
-  selectedIngredients.value = selectedIngredients.value.filter(i => i.id !== id)
+  selectedIngredients.value = selectedIngredients.value.filter(item => item.id !== id);
 }
 
 function clearPantry() {
-  selectedIngredients.value = []
+  selectedIngredients.value = [];
 }
 
 function openExpiryModal(ingredient) {
-  editingIngredient.value = ingredient
-  tempExpiryDate.value = ingredient.expiry || ''
-  showExpiryModal.value = true
+  editingIngredient.value = ingredient;
+  tempExpiryDate.value = ingredient.expiry || '';
+  showExpiryModal.value = true;
 }
 
 function closeExpiryModal() {
-  showExpiryModal.value = false
-  editingIngredient.value = null
-  tempExpiryDate.value = ''
+  showExpiryModal.value = false;
+  editingIngredient.value = null;
+  tempExpiryDate.value = '';
 }
 
-function saveExpiryDate() {
+async function saveExpiryDate() {
   if (editingIngredient.value) {
-    editingIngredient.value.expiry = tempExpiryDate.value
+    editingIngredient.value.expiry = tempExpiryDate.value;
+    
+    // update firebase
+    if (editingIngredient.value.fromPantry && user.value) {
+      await updatePantryIngredient(editingIngredient.value.name, tempExpiryDate.value);
+    }
   }
-  closeExpiryModal()
+  closeExpiryModal();
 }
 
-function clearExpiryDate() {
+async function clearExpiryDate() {
   if (editingIngredient.value) {
-    editingIngredient.value.expiry = null
+    editingIngredient.value.expiry = null;
+    
+    // update firebase
+    if (editingIngredient.value.fromPantry && user.value) {
+      await updatePantryIngredient(editingIngredient.value.name, null);
+    }
   }
-  closeExpiryModal()
+  closeExpiryModal();
 }
 
+async function updatePantryIngredient(ingredientName, newExpiry) {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  
+  try {
+    // ref user pantry
+    const pantryRef = doc(db, "users", currentUser.uid);
+    const snapshot = await getDoc(pantryRef);
+    
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      const pantryItems = data.pantry || [];
+      
+      // Find and update the matching ingredient
+      const updatedPantry = pantryItems.map(item => {
+        if (item.name.toLowerCase() === ingredientName.toLowerCase()) {
+          // Spread operation to expand item
+          return { ...item, expiry: newExpiry };
+        }
+        return item;
+      });
+      
+      await setDoc(pantryRef, { pantry: updatedPantry }, { merge: true });
+    }
+  } catch (err) {
+    console.error("Error updating pantry:", err);
+  }
+}
+
+// Get today's date in YYYY-MM-DD format
 function getTodayDate() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0];
 }
 
 function isExpired(ingredient) {
-  if (!ingredient.expiry) return false
-  const expiryDate = new Date(ingredient.expiry)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  expiryDate.setHours(0, 0, 0, 0)
-  return expiryDate < today
+  if (!ingredient.expiry) return false;
+  
+  const expiryDate = new Date(ingredient.expiry);
+  const today = new Date();
+  
+  today.setHours(0, 0, 0, 0);
+  expiryDate.setHours(0, 0, 0, 0);
+  
+  return expiryDate < today;
 }
 
+
 function isExpiringSoon(ingredient) {
-  if (!ingredient.expiry) return false
-  if (isExpired(ingredient)) return false
-  const expiryDate = new Date(ingredient.expiry)
-  const today = new Date()
-  const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
-  return diffDays >= 0 && diffDays <= 3
+  if (!ingredient.expiry) return false;
+  if (isExpired(ingredient)) return false;
+  
+  const expiryDate = new Date(ingredient.expiry);
+  const today = new Date();
+  
+  // Calculate days until expiry
+  const diffTime = expiryDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Check if ingredient expires within 3 days
+  return diffDays >= 0 && diffDays <= 3;
 }
 
 function getExpiringIngredients() {
-  return selectedIngredients.value.filter(isExpiringSoon)
+  return selectedIngredients.value.filter(isExpiringSoon);
 }
 
-
-const recipes = ref([])
-const loading = ref(false)
-const error = ref('')
-
+// Filter recipes based on zero waste toggle
 const filteredRecipes = computed(() => {
-  return zeroWasteOnly.value ? recipes.value.filter(r => r.zeroWaste) : recipes.value
-})
-
-function listNames(arr = []) {
-  return arr.map(i => i.name).join(', ')
-}
-
-function displayNutrient(recipe, name) {
-  const nutrient = recipe?.nutrition?.nutrients?.find(n => n.name === name)
-  if (!nutrient) return '—'
-  const value = Math.round(nutrient.amount)
-  const unit = nutrient.unit?.toLowerCase() === 'kcal' ? '' : nutrient.unit
-  return unit ? `${value}${unit}` : `${value}`
-}
-
-function computeSustainabilityScore(recipe, pantryItems, expiringIngredients = []) {
-  const total = (recipe.usedIngredients?.length || 0) + (recipe.missedIngredients?.length || 0)
-  const pantryRatio = total ? (recipe.usedIngredients?.length || 0) / total : 0
-  const missingPenalty = total ? 1 - ((recipe.missedIngredients?.length || 0) / total) : 1
-
-  const expiringNames = new Set(expiringIngredients.map(i => i.name.toLowerCase()))
-  const usesExpiring = (recipe.usedIngredients || []).filter(i => 
-    expiringNames.has(i.name?.toLowerCase())
-  )
-  const expiringBonus = expiringIngredients.length > 0 ? 
-    usesExpiring.length / expiringIngredients.length : 0
-
-  let score = Math.round(50 * pantryRatio + 30 * missingPenalty + 20 * expiringBonus)
-  score = Math.max(0, Math.min(100, score))
-  
-  return { score, usesExpiring }
-}
-
-async function findRecipes() {
-  error.value = ''
-  recipes.value = []
-  if (!API_KEY) {
-    error.value = 'Missing API key'
-    return
+  if (zeroWasteOnly.value) {
+    return recipes.value.filter(recipe => recipe.zeroWaste);
   }
-  if (!selectedIngredients.value.length) return
+  return recipes.value;
+});
 
-  loading.value = true
-  try {
-    const ingredientList = selectedIngredients.value.map(i => encodeURIComponent(i.name)).join(',')
-    const res = await fetch(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientList}&number=12&ranking=1&ignorePantry=true&apiKey=${API_KEY}`)
-    
-    if (!res.ok && res.status == 402) {
-      throw new Error('API limit reached');
-    } else if (!res.ok) {
-      throw new Error(`Request failed: ${res.status}`);
-    }
-    
-    const base = await res.json()
-    const expiringIngredients = prioritizeExpiring.value ? getExpiringIngredients() : []
+// Convert array of ingredients to comma-separated string
+function listNames(ingredientArray) {
+  if (!ingredientArray || ingredientArray.length === 0) return '';
+  return ingredientArray.map(item => item.name).join(', ');
+}
 
-    const details = await Promise.all(
-      base.map(async (r) => {
-        const infoRes = await fetch(`https://api.spoonacular.com/recipes/${r.id}/information?includeNutrition=true&apiKey=${API_KEY}`)
-        if (!infoRes.ok) {
-          throw new Error('Failed to fetch recipe details')
+// Display nutrient value with unit
+function displayNutrient(recipe, nutrientName) {
+  if (!recipe.nutrition || !recipe.nutrition.nutrients) return '—';
+  
+  const nutrient = recipe.nutrition.nutrients.find(n => n.name === nutrientName);
+  if (!nutrient) return '—';
+  
+  const value = Math.round(nutrient.amount);
+  const unit = nutrient.unit;
+  
+  // Don't show unit for calories
+  if (unit && unit.toLowerCase() === 'kcal') {
+    return `${value}`;
+  }
+  
+  return unit ? `${value}${unit}` : `${value}`;
+}
+
+// Calculate sustainability score for recipe
+function computeSustainabilityScore(recipe, pantryItems, expiringIngredients) {
+  // Count total ingredients needed
+  const usedCount = recipe.usedIngredients ? recipe.usedIngredients.length : 0;
+  const missedCount = recipe.missedIngredients ? recipe.missedIngredients.length : 0;
+  const totalIngredients = usedCount + missedCount;
+  
+  // Calculate pantry ratio
+  let pantryRatio = totalIngredients > 0 ? usedCount / totalIngredients : 0;
+  let missingPenalty = totalIngredients > 0 ? 1 - (missedCount / totalIngredients) : 1;
+  
+  // Calculate expiring bonus
+  let expiringBonus = 0;
+  if (expiringIngredients && expiringIngredients.length > 0) {
+    // Count how many expiring ingredients this recipe uses
+    let usesExpiringCount = 0;
+    for (let i = 0; i < recipe.usedIngredients.length; i++) {
+      const ingredient = recipe.usedIngredients[i];
+      for (let j = 0; j < expiringIngredients.length; j++) {
+        if (ingredient.name.toLowerCase() === expiringIngredients[j].name.toLowerCase()) {
+          usesExpiringCount++;
+          break;
         }
-        const info = await infoRes.json()
+      }
+    }
+    expiringBonus = usesExpiringCount / expiringIngredients.length;
+  }
+  
+  // Calculate final score (out of 100)
+  // 50% based on ingredients we have
+  // 30% based on ingredients we don't need to buy
+  // 20% based on using expiring ingredients
+  // Math might not be perfect but should be ok?
+  let score = (50 * pantryRatio) + (30 * missingPenalty) + (20 * expiringBonus);
+  score = Math.round(score);
+  
+  // Make sure score is between 0 and 100
+  score = score < 0 ? 0 : score > 100 ? 100 : score;
+  
+  return { score: score, usesExpiring: [] };
+}
 
-        const usedIngredients = (r.usedIngredients || []).map(x => ({ 
-          name: x.name, amount: x.amount, unit: x.unit 
-        }))
-        const missedIngredients = (r.missedIngredients || []).map(x => ({ 
-          name: x.name, amount: x.amount, unit: x.unit 
-        }))
+// Search for recipes using selected ingredients
+async function findRecipes() {
+  error.value = '';
+  recipes.value = [];
+  
+  // Checks
+  if (!API_KEY) {
+    error.value = 'Missing API key';
+    return;
+  }
+  
+  if (selectedIngredients.value.length === 0) {
+    return;
+  }
 
-        const { score, usesExpiring } = computeSustainabilityScore(
-          { ...r, usedIngredients, missedIngredients },
+  loading.value = true;
+  
+  try {
+    // Create comma-separated list of ingredients
+    const ingredientNames = selectedIngredients.value.map(item => encodeURIComponent(item.name));
+    const ingredientList = ingredientNames.join(',');
+    
+    const response = await axios.get('https://api.spoonacular.com/recipes/findByIngredients', {
+      params: {
+        ingredients: ingredientList,
+        number: 5, // Adjusted to 5 to save API calls
+        ranking: 1, // is maximize used ingredients (1) or minimize missing ingredients (2)
+        ignorePantry: true, // ignore water/salt etc based on docs
+        apiKey: API_KEY
+      }
+    });
+    
+    const recipesData = response.data;
+    
+    let expiringIngredients = [];
+    if (prioritizeExpiring.value) {
+      expiringIngredients = getExpiringIngredients();
+    }
+
+    const recipeDetails = [];
+    for (let i = 0; i < recipesData.length; i++) {
+      const recipe = recipesData[i];
+      
+      try {
+        // Fetch nutrition and details
+        const detailResponse = await axios.get(`https://api.spoonacular.com/recipes/${recipe.id}/information`, {
+          params: {
+            includeNutrition: true,
+            apiKey: API_KEY
+          }
+        });
+        
+        const details = detailResponse.data;
+
+        // Format ingredients
+        const used = [];
+        for (let j = 0; j < recipe.usedIngredients.length; j++) {
+          const ing = recipe.usedIngredients[j];
+          used.push({ name: ing.name, amount: ing.amount, unit: ing.unit });
+        }
+        
+        const missed = [];
+        for (let j = 0; j < recipe.missedIngredients.length; j++) {
+          const ing = recipe.missedIngredients[j];
+          missed.push({ name: ing.name, amount: ing.amount, unit: ing.unit });
+        }
+
+        // Calculate sustainability score
+        const scoreData = computeSustainabilityScore(
+          { usedIngredients: used, missedIngredients: missed },
           selectedIngredients.value,
           expiringIngredients
-        )
+        );
 
-        return {
-          id: r.id,
-          title: info.title,
-          image: info.image,
-          sourceUrl: info.sourceUrl,
-          readyInMinutes: info.readyInMinutes,
-          servings: info.servings,
-          usedIngredients,
-          missedIngredients,
-          usedIngredientCount: r.usedIngredientCount,
-          missedIngredientCount: r.missedIngredientCount,
-          nutrition: info.nutrition,
-          sustainabilityScore: score,
-          usesExpiring: usesExpiring.length,
-          zeroWaste: r.missedIngredientCount === 0,
-          showDetails: false,
-        }
-      })
-    )
+        // Building recipe object
+        recipeDetails.push({
+          id: recipe.id,
+          title: details.title,
+          image: details.image,
+          sourceUrl: details.sourceUrl,
+          readyInMinutes: details.readyInMinutes,
+          servings: details.servings,
+          usedIngredients: used,
+          missedIngredients: missed,
+          usedIngredientCount: recipe.usedIngredientCount,
+          missedIngredientCount: recipe.missedIngredientCount,
+          nutrition: details.nutrition,
+          sustainabilityScore: scoreData.score,
+          usesExpiring: 0,
+          zeroWaste: recipe.missedIngredientCount === 0,
+          showDetails: false
+        });
+      } catch (err) {
+        // Skip this recipe if there's an error fetching details
+        continue;
+      }
+    }
 
-    recipes.value = details.sort((a, b) => {
+    // Sort recipes by score
+    recipeDetails.sort((a, b) => {
+      // Zero waste first if enabled
       if (zeroWasteOnly.value && a.zeroWaste !== b.zeroWaste) {
-        return b.zeroWaste - a.zeroWaste
+        return b.zeroWaste ? 1 : -1;
       }
-      if (prioritizeExpiring.value && a.usesExpiring !== b.usesExpiring) {
-        return b.usesExpiring - a.usesExpiring
-      }
+      
+      // Then by sustainability score
       if (a.sustainabilityScore !== b.sustainabilityScore) {
-        return b.sustainabilityScore - a.sustainabilityScore
+        return b.sustainabilityScore - a.sustainabilityScore;
       }
-      return a.missedIngredientCount - b.missedIngredientCount
-    })
-  } catch (e) {
-    error.value = e.message || 'Failed to fetch recipes.'
+      
+      // Finally by missing ingredients
+      return a.missedIngredientCount - b.missedIngredientCount;
+    });
+    
+    recipes.value = recipeDetails;
+    
+  } catch (err) {
+    // Handle axios errors
+    if (err.response && err.response.status === 402) {
+      error.value = 'API limit reached';
+    } else {
+      error.value = err.message || 'Failed to fetch recipes';
+    }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
+// Show/hide recipe details
 function toggleDetails(recipe) {
-  recipe.showDetails = !recipe.showDetails
+  recipe.showDetails = !recipe.showDetails;
+}
+
+// Open modal to deduct ingredients from pantry
+async function openDeductModal(recipe) {
+  deductingRecipe.value = recipe;
+  
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  
+  try {
+    
+    const pantryRef = doc(db, "users", currentUser.uid);
+    const snapshot = await getDoc(pantryRef);
+    
+    let pantryData = {};
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      const pantryItems = data.pantry || [];
+      
+      for (let i = 0; i < pantryItems.length; i++) {
+        const item = pantryItems[i];
+        const itemName = item.name.toLowerCase();
+        pantryData[itemName] = {
+          quantity: item.qty || item.quantity || 0,
+          unit: item.unit || ''
+        };
+      }
+    }
+    
+    const ingredientsList = [];
+    for (let i = 0; i < recipe.usedIngredients.length; i++) {
+      const ingredient = recipe.usedIngredients[i];
+      const ingredientName = ingredient.name.toLowerCase();
+      const pantryInfo = pantryData[ingredientName] || {};
+      
+      ingredientsList.push({
+        name: ingredient.name,
+        amount: ingredient.amount || 0,
+        unit: ingredient.unit || '',
+        pantryQuantity: pantryInfo.quantity || 0,
+        pantryUnit: pantryInfo.unit || ingredient.unit || '',
+        selected: true,
+        deductAmount: ingredient.amount || 0,
+        deductUnit: ingredient.unit || ''
+      });
+    }
+    
+    deductIngredientsList.value = ingredientsList;
+    showDeductModal.value = true;
+    
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+function closeDeductModal() {
+  showDeductModal.value = false;
+  deductingRecipe.value = null;
+  deductIngredientsList.value = [];
+}
+
+async function confirmDeductIngredients() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  
+  try {
+    // Get current pantry from Firebase
+    const pantryRef = doc(db, "users", currentUser.uid);
+    const snapshot = await getDoc(pantryRef);
+    
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      let pantryItems = data.pantry || [];
+      
+
+      for (let i = 0; i < deductIngredientsList.value.length; i++) {
+        const ingredient = deductIngredientsList.value[i];
+        if (ingredient.selected && ingredient.deductAmount > 0) {
+          let foundIndex = -1;
+          for (let j = 0; j < pantryItems.length; j++) {
+            if (pantryItems[j].name.toLowerCase() === ingredient.name.toLowerCase()) {
+              foundIndex = j;
+              break;
+            }
+          }
+          
+          if (foundIndex !== -1) {
+            const currentQty = pantryItems[foundIndex].qty || pantryItems[foundIndex].quantity || 0;
+            const newQty = currentQty - ingredient.deductAmount;
+            // Remove item if quantity is 0 or negative
+            if (newQty <= 0) {
+              pantryItems.splice(foundIndex, 1);
+            } else {
+              // update if not neg / 0
+              if (pantryItems[foundIndex].qty !== undefined) {
+                pantryItems[foundIndex].qty = newQty;
+              } else {
+                pantryItems[foundIndex].quantity = newQty;
+              }
+            }
+          }
+        }
+      }
+      
+      // Save updated pantry to Firebase
+      await setDoc(pantryRef, { pantry: pantryItems }, { merge: true });
+      closeDeductModal();
+    }
+  } catch (err) {
+    console.error("Error:", err);
+  }
 }
 
 async function retrievePantry() {
   const user = auth.currentUser;
   if (!user) {
-    console.warn("User not logged in");
     return;
   }
 
-  const pantryRef = doc(db, "users", user.uid);
   try {
+    const pantryRef = doc(db, "users", user.uid);
     const snapshot = await getDoc(pantryRef);
+    
     if (snapshot.exists()) {
       const data = snapshot.data();
-      console.log("Retrieved pantry:", data.pantry);
-      // Import pantry items into selectedIngredients
       const pantryItems = data.pantry || [];
-      // Merge with existing ingredients, avoiding duplicates
-      const existingNames = new Set(selectedIngredients.value.map(i => i.name.toLowerCase()));
-      pantryItems.forEach(item => {
+      const existingIngredients = [];
+      for (let i = 0; i < selectedIngredients.value.length; i++) {
+        existingIngredients.push(selectedIngredients.value[i].name.toLowerCase());
+      }
+      for (let i = 0; i < pantryItems.length; i++) {
+        const item = pantryItems[i];
         const itemName = item.name.toLowerCase();
-        if (!existingNames.has(itemName)) {
+
+        let alreadyExists = false;
+        for (let j = 0; j < existingIngredients.length; j++) {
+          if (existingIngredients[j] === itemName) {
+            alreadyExists = true;
+            break;
+          }
+        }
+        
+        if (!alreadyExists) {
           selectedIngredients.value.push({
             id: nextId++,
             name: itemName,
-            expiry: item.expiry || null // Preserve expiry date if available
+            expiry: item.expiry || null,
+            fromPantry: true
           });
         }
-      });
-    } else {
-      console.log("No pantry found for this user.");
+      }
     }
   } catch (err) {
-    console.error("Error getting pantry:", err);
+    console.error("Error:", err);
   }
 }
-// Test functions as I am not supposed to add to pantry ingredients, but required for backend testing
+
+// Testing function to add sample pantry data
 async function testSetPantryToFirestore() {
   const user = auth.currentUser;
   if (!user) {
-    console.warn("User not logged in");
     return;
   }
 
   const pantryRef = doc(db, "users", user.uid);
 
-  // Example pantry data
+  // Sample pantry data for testing
   const testPantry = [
     { name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
     { name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
@@ -521,13 +869,12 @@ async function testSetPantryToFirestore() {
     await setDoc(pantryRef, { pantry: testPantry }, { merge: true });
     console.log("Test pantry written to Firestore!");
   } catch (err) {
-    console.error("Error writing pantry:", err);
+    console.error("Error:", err);
   }
 }
 
-
+// Make function available for testing in browser console
 window.testSetPantryToFirestore = testSetPantryToFirestore;
-// window.testGetPantryFromFirestore = testGetPantryFromFirestore;
 
 </script>
 
@@ -781,6 +1128,17 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   padding: 1.5rem;
   max-width: 400px;
   width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content-large {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
