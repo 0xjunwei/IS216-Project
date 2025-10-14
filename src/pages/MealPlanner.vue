@@ -1,6 +1,6 @@
 <template>
   <div class="min-vh-100 bg-light content-under-nav">
-    <div class="container-fluid py-4 px-4">
+    <div class="container-fluid pb-4 px-2">
       <div class="row g-4 align-items-start">
         <!-- Meal Planner Column -->
         <div class="col-12 col-lg-9">
@@ -608,10 +608,10 @@ onUnmounted(() => {
 
 /* Push page content below the fixed navbar */
 .content-under-nav {
-  padding-top: 80px;
+  padding-top: 0px;
 }
 @media (min-width: 992px) {
-  .content-under-nav { padding-top: 80px; }
+  .content-under-nav { padding-top: 0px; }
 }
 
 /* Standard Bootstrap card styling */
