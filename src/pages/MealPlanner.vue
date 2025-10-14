@@ -1,7 +1,7 @@
 <template>
   <div class="min-vh-100 bg-light content-under-nav">
     <div class="container-fluid py-4 pt-5 px-4">
-      <div class="row g-4">
+      <div class="row g-4 align-items-start">
         <!-- Meal Planner Column -->
         <div class="col-12 col-lg-9">
           <div class="card surface-card glass-card shadow-sm border-0">
