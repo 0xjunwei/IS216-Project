@@ -1,73 +1,61 @@
-<style>
-body {
-
-}
-.fresh {
-    background-color: lightgreen;
-}
-.expiring {
-background-color: lightyellow;
-}
-.expired {
-background-color: lightcoral;}
-</style>
-
-
-<template>
-<div class="card p-3 mb-4 border border-1">
-    <h5>New Item</h5>
-    <form id="pantryForm" class="row g-3" @submit.prevent="createItem">
-        <div class="col-10">
-            <input type="text" id="itemName" class="New_item" placeholder="Item name" v-model="newItemText">
-        </div>
-        <div>
-            <input type="date" id="itemExpiry" class="New_item" placeholder="Expiry date" v-model="itemExpiry">
-        </div>
-        <div>
-            <select name="category" id="" v-model="category">
-                <option value="meat">Meat</option>
-                <option value="vegetable">Vegetable</option>
-                <option value="fruit">Fruit</option>
-                <option value="dairy">Dairy</option>
-            </select>
-        </div>
-    <div class="col-2">
-        <button type="submit" class="btn btn-primary w-100">Add</button>
-        </div>
-        </form>
-    </div>
-
-    <h3>Current Pantry</h3>
-    <div id="itemList" class="container p-3 mb-4 border">
-        <ul>
-            <li v-for="(item, index) in items" :key="index" :class="item.freshness">
-                <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}, Category: {{ item.category }})
-            </li>
-        </ul>
-    </div>
-</template>
 
 <script>
+
+import { StreamBarcodeReader, ImageBarcodeReader } from '@teckel/vue-barcode-reader'
+
 export default {
         data() {
             return {
-                newItemText: '',
+                newItemName: '',
                 itemExpiry: '',
                 category: '',
-                items: []
+                categories: ['Meat','Fruits & Vegetable','Dairy & Drinks','Others'],
+                meats: [],
+                fruitsVegetables: [],
+                dairyDrinks: [],
+                others: [],
+                // barcode reader
+                decodedText: "",
             };
+        },
+        components: {
+            StreamBarcodeReader,
+            // ImageBarcodeReader
         },
     methods: {
         createItem() {
-            if (this.newItemText.trim() !== '' && this.itemExpiry && this.category) {
+            if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
                 let freshness = this.checkFreshness(this.itemExpiry);
-                this.items.push({
-                    text: this.newItemText.trim(),
-                    expiry: this.itemExpiry,
-                    category: this.category,
-                    freshness: freshness
+                if (this.category == 'Meat') {
+                    this.meats.push({
+                        text: this.newItemName.trim(),
+                        expiry: this.itemExpiry,
+                        category: this.category,
+                        freshness: freshness
                 });
-                this.newItemText = '';
+                } else if (this.category == 'Fruits & Vegetable') {
+                    this.fruitsVegetables.push({
+                        text: this.newItemName.trim(),
+                        expiry: this.itemExpiry,
+                        category: this.category,
+                        freshness: freshness
+                });
+                } else if (this.category == 'Dairy & Drinks') {
+                    this.dairyDrinks.push({
+                        text: this.newItemName.trim(),
+                        expiry: this.itemExpiry,
+                        category: this.category,
+                        freshness: freshness
+                });
+                } else if (this.category == 'Others') {
+                    this.others.push({
+                        text: this.newItemName.trim(),
+                        expiry: this.itemExpiry,
+                        category: this.category,
+                        freshness: freshness
+                });
+                }
+                this.newItemName = '';
                 this.itemExpiry = '';
                 this.category = '';
             }
@@ -76,17 +64,103 @@ export default {
     checkFreshness(expiryDate) {
         const today = new Date();
         const expiry = new Date(expiryDate);
-        const diffTime = expiry - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const difference = expiry - today;
+        const diffDays = Math.ceil(difference / (1000 * 60 * 60 * 24));
+
+        const defaultBootStrap = 'rounded-3 my-2 text-center'        
 
         if (diffDays > 7) {
-            return 'fresh';
+            return defaultBootStrap + ' bg-success';
         } else if (diffDays >= 0 && diffDays <= 7) {
-            return 'expiring';
+            return defaultBootStrap + ' bg-warning';
         } else {
-            return 'expired';
+            return defaultBootStrap + ' bg-danger';
         }
+    },
+    
+    removeItem(index) {
+        this.items.splice(index,1)
+    },
+
+// Barcode reader methods based on official documentation
+    onDecode(result) {
+        console.log('hi')
+        this.decodedText = result
+        console.log('Decoded:', result)
+    },
+    onLoaded() {
+        console.log('Camera ready')
     }
 }
 }
 </script>
+
+<template>
+<!-- Adding new items form -->
+<div class="card p-3 mb-4">
+    <h3 style="text-align: center;">Add new Item</h3>
+    <form id="pantryForm" class="row g-3" v-on:submit.prevent="createItem" v-on:keyup.enter="createItem">
+        <!-- New Item input & Category -->
+        <div class="input-group">
+            <input type="text" class="col-8" placeholder="New item Name" v-model="newItemName">
+            <select name="category" class="form-select d-block col-4" v-model="category">
+                <option value="" selected disabled>Select a category</option>
+                <option v-for="category in categories">{{ category }}</option>
+            </select>
+        </div>
+        <div>
+            <h5>Expiry Date:</h5>
+            <input type="date" id="itemExpiry" class="New_item" placeholder="Expiry date" v-model="itemExpiry">
+        </div>
+        <div>
+        </div>
+        <div class="col-2">
+            <button type="submit" class="btn btn-primary w-100">Add</button>
+        </div>
+        </form>
+    </div>
+
+<!-- This is for the barcode reader part, uncomment & allow camera, it should appear on the page -->
+    <!-- <div class="d-inline-block justify-content-center align-items-center">
+    <ImageBarcodeReader @decode="onDecode"></ImageBarcodeReader>
+    <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
+    <h2>Decoded value: {{ decodedText }}</h2>
+
+    </div> -->
+<!-- Displaying Pantry -->
+    <h3 style="text-align: center;">Current Pantry</h3>
+    <div class="row">
+        <div class="container border border-3 secondary col-3">
+            <h4 style="text-align: center; text-decoration: underline;">Meats</h4>
+            <ul>
+                <li v-for="(item, index) in meats" :class="item.freshness">
+                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
+                </li>
+            </ul>
+        </div>
+        <div class="container border border-3 col-3">
+            <h4 style="text-align: center; text-decoration: underline;">Fruits & Vegetables</h4>
+            <ul>
+                <li v-for="(item, index) in fruitsVegetables"  :class="item.freshness">
+                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
+                </li>
+            </ul>
+        </div>
+        <div class="container border border-3 col-3">
+            <h4 style="text-align: center; text-decoration: underline;">Dairy & Drinks</h4>
+            <ul>
+                <li v-for="(item, index) in dairyDrinks" :class="item.freshness">
+                    <strong class="">{{ item.text }}</strong> (Expiry: {{ item.expiry }})  <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
+                </li>
+            </ul>
+        </div>
+        <div class="container border border-3 col-3">
+            <h4 style="text-align: center; text-decoration: underline;">Others</h4>
+            <ul>
+                <li v-for="(item, index) in others" :class="item.freshness">
+                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</template>
