@@ -62,21 +62,21 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "./js/config.js";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const router = useRouter();
 const user = ref(null);
 
 let unsubscribe;
 onMounted(() => {
-  // Use mock auth that always returns a user
-  unsubscribe = auth.onAuthStateChanged((u) => {
+  unsubscribe = onAuthStateChanged(auth, (u) => {
     user.value = u;
   });
 });
 onUnmounted(() => { if (unsubscribe) unsubscribe()});
 
 async function logout() {
-  await auth.signOut();
+  await signOut(auth);
   router.push("/login");
 }
 </script>

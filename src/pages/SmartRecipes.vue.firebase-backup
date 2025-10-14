@@ -168,17 +168,23 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { auth } from "../js/config.js";
+import { auth, db } from "../js/config.js";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
 
 // Check if user exists then show the retrieve button
 const user = ref(auth.currentUser);
 let unsub = null;
+// Based on https://firebase.google.com/docs/auth/web/start#sign_in_existing_users
+// Already in auth from config thus slight modification from the google version
 onMounted(() => {
-  unsub = auth.onAuthStateChanged((uid) => {
+  unsub = onAuthStateChanged(auth, (uid) => {
     user.value = uid;
   });
 });
+// Incase to clear memory https://vuejs.org/api/composition-api-lifecycle
 onUnmounted(() => {if (unsub) unsub()});
+
 
 // Daily limit of 50 too low, have to find another service or pay for it, Estimate 2 queries per day
 // May do key rotation but might get IP banned WIP / Get prof to enter his own API key for testing
@@ -193,30 +199,6 @@ const zeroWasteOnly = ref(false)
 
 const newItem = ref({ name: '', qty: 1, unit: '', expiry: '' })
 
-// Load pantry from localStorage on mount
-onMounted(() => {
-  loadPantryFromStorage();
-});
-
-function loadPantryFromStorage() {
-  const savedPantry = localStorage.getItem('pantry');
-  if (savedPantry) {
-    try {
-      pantry.value = JSON.parse(savedPantry);
-      // Update nextId to avoid conflicts
-      if (pantry.value.length > 0) {
-        nextId = Math.max(...pantry.value.map(item => item.id)) + 1;
-      }
-    } catch (e) {
-      console.error('Error loading pantry from storage:', e);
-    }
-  }
-}
-
-function savePantryToStorage() {
-  localStorage.setItem('pantry', JSON.stringify(pantry.value));
-}
-
 function addItem() {
   if (!newItem.value.name) return
   pantry.value.push({
@@ -227,15 +209,12 @@ function addItem() {
     expiry: newItem.value.expiry || null,
   })
   newItem.value = { name: '', qty: 1, unit: '', expiry: '' }
-  savePantryToStorage(); // Save to localStorage
 }
 function removeItem(id) {
   pantry.value = pantry.value.filter(i => i.id !== id)
-  savePantryToStorage(); // Save to localStorage
 }
 function clearPantry() {
   pantry.value = []
-  savePantryToStorage(); // Save to localStorage
 }
 
 const pantrySorted = computed(() => {
@@ -389,28 +368,52 @@ function toggleDetails(recipe) {
 }
 
 async function retrievePantry() {
-  // Load from localStorage instead of Firestore
-  loadPantryFromStorage();
-  console.log("Retrieved pantry from localStorage:", pantry.value);
-}
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
 
-// Test function - now saves to localStorage instead of Firestore
+  const pantryRef = doc(db, "users", user.uid);
+  try {
+    const snapshot = await getDoc(pantryRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log("Retrieved pantry:", data.pantry);
+      // Optional: replace your local pantry with it
+      pantry.value = data.pantry || [];
+    } else {
+      console.log("No pantry found for this user.");
+    }
+  } catch (err) {
+    console.error("Error getting pantry:", err);
+  }
+}
+// Test functions as I am not supposed to add to pantry ingredients, but required for backend testing
 async function testSetPantryToFirestore() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
+
+  const pantryRef = doc(db, "users", user.uid);
+
   // Example pantry data
   const testPantry = [
-    { id: 1, name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
-    { id: 2, name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
-    { id: 3, name: "broccoli", qty: 3, unit: "pcs", expiry: "2025-10-09" },
+    { name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
+    { name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
+    { name: "broccoli", qty: 3, unit: "pcs", expiry: "2025-10-09" },
   ];
 
   try {
-    pantry.value = testPantry;
-    savePantryToStorage();
-    console.log("Test pantry written to localStorage!");
+    await setDoc(pantryRef, { pantry: testPantry }, { merge: true });
+    console.log("Test pantry written to Firestore!");
   } catch (err) {
     console.error("Error writing pantry:", err);
   }
 }
+
 
 window.testSetPantryToFirestore = testSetPantryToFirestore;
 // window.testGetPantryFromFirestore = testGetPantryFromFirestore;

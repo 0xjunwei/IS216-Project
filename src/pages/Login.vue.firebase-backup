@@ -96,15 +96,26 @@
 import { ref, nextTick, computed, onMounted, onUnmounted} from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "../js/config.js";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+} from "firebase/auth";
+
+
+// If user is logged in should redirect away else weird
+
 
 const router = useRouter();
 
 const isRegister = ref(false);
 const animateTitle = ref(true);
 
+
 const loginForm = ref({ email: "", password: "" });
 const registerForm = ref({ email: "", password: "", confirmPassword: "" });
+
 
 const loggingIn = ref(false);
 const registering = ref(false);
@@ -116,7 +127,7 @@ const resetInfo = ref("");
 let unsubscribe = null;
 
 onMounted(() => {
-  unsubscribe = auth.onAuthStateChanged((user) => {
+  unsubscribe = onAuthStateChanged(auth, (user) => {
     if (user) {
       router.replace({ name: "SmartRecipes" });
     }
@@ -125,6 +136,7 @@ onMounted(() => {
 onUnmounted(() => {
     if (unsubscribe) unsubscribe();
 });
+
 
 const triggerAnimation = async () => {
   animateTitle.value = false;
@@ -158,22 +170,11 @@ async function handleLogin() {
   loginError.value = "";
   resetInfo.value = "";
   loggingIn.value = true;
-  
-  // Debug logging (removed sensitive data)
-  console.log("Attempting login with:", {
-    email: loginForm.value.email,
-    passwordLength: loginForm.value.password.length,
-    authDomain: auth.app.options.authDomain
-  });
-  
   try {
     await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password);
-    // Redirect to SmartRecipes page
+    // Needs a landing page will modify and make one for now send to the only page i have i guess
     router.push({ name: "SmartRecipes" });
   } catch (e) {
-    console.error("Login error details:", e);
-    console.error("Error code:", e.code);
-    console.error("Error message:", e.message);
     loginError.value = mapAuthError(e);
   } finally {
     loggingIn.value = false;
@@ -189,7 +190,7 @@ async function handleRegister() {
   registering.value = true;
   try {
     await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password);
-    // Auto redirects after registration
+    // Auto logins from registration
     router.push({ name: "SmartRecipes" });
   } catch (e) {
     registerError.value = mapAuthError(e);
@@ -228,6 +229,7 @@ async function forgotPassword() {
     sendingReset.value = false;
   }
 }
+
 
 function mapAuthError(err) {
   const code = err?.code || "";
