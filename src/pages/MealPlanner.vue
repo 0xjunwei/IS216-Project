@@ -599,40 +599,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Animated gradient background + glows (glassmorphism vibe) */
+/* Light theme styling to match other pages */
 .min-vh-100 {
-  background: linear-gradient(135deg, #1b1b1b, #111018) !important;
-  color: #f5f5f5 !important;
+  background: #f8f9fa !important;
+  color: #212529 !important;
   font-family: "Inter", "Segoe UI", sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-.min-vh-100::before,
-.min-vh-100::after {
-  content: "";
-  position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 60%;
-  background:
-    radial-gradient(60% 60% at 20% 30%, rgba(102, 126, 234, 0.22) 0%, rgba(0,0,0,0) 70%),
-    radial-gradient(50% 50% at 80% 20%, rgba(118, 75, 162, 0.18) 0%, rgba(0,0,0,0) 70%);
-  filter: blur(60px);
-  pointer-events: none;
-  animation: floatGlow 18s ease-in-out infinite alternate;
-}
-.min-vh-100::after {
-  inset: auto -10% -30% -10%;
-  height: 70%;
-  background:
-    radial-gradient(50% 50% at 80% 80%, rgba(46, 204, 113, 0.16) 0%, rgba(0,0,0,0) 70%),
-    radial-gradient(60% 60% at 10% 90%, rgba(0, 184, 148, 0.18) 0%, rgba(0,0,0,0) 70%);
-}
-@keyframes floatGlow {
-  0% { transform: translateY(0) }
-  100% { transform: translateY(10px) }
 }
 
-/* Push page content below the fixed navbar without moving the background layers at <body> level */
+/* Push page content below the fixed navbar */
 .content-under-nav {
   padding-top: 88px;
 }
@@ -640,67 +614,52 @@ onUnmounted(() => {
   .content-under-nav { padding-top: 5em; }
 }
 
-/* Override Bootstrap light backgrounds */
-.bg-light {
-  background: #1e1e1e !important;
-  color: #f5f5f5 !important;
-}
-
+/* Standard Bootstrap card styling */
 .card {
-  background: #1e1e1e !important;
-  color: #f5f5f5 !important;
-  border: 1px solid #2a2a2a;
+  background: #fff !important;
+  color: #212529 !important;
+  border: 1px solid #dee2e6;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-/* Translucent surface used for the two main sections */
+/* Surface cards with light theme */
 .surface-card {
-  background: rgba(30,30,30,0.7) !important;
-  backdrop-filter: saturate(140%) blur(12px);
-  -webkit-backdrop-filter: saturate(140%) blur(12px);
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset !important;
+  background: #fff !important;
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
 }
 
-/* Glass accents for buttons/cards per provided mock */
+/* Standard Bootstrap button styling */
 .btn-glow {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0d6efd;
   color: #fff;
-  border: none;
+  border: 1px solid #0d6efd;
   border-radius: 12px;
   padding: 0.6rem 1rem;
   font-weight: 600;
-  position: relative;
-  overflow: hidden;
 }
-.btn-glow::before {
-  content: "";
-  position: absolute;
-  top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-  transition: left .6s ease;
+.btn-glow:hover {
+  background: #0b5ed7;
+  border-color: #0a58ca;
 }
-.btn-glow:hover::before { left: 100%; }
-.btn-glow:hover { filter: brightness(1.05); box-shadow: 0 10px 25px rgba(102,126,234,.35); }
 
 .btn-glass {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: #6c757d;
   color: #fff;
+  border: 1px solid #6c757d;
   border-radius: 12px;
 }
-
-.btn-glass:hover { background: rgba(255, 136, 90, 0.894); }
+.btn-glass:hover {
+  background: #5c636a;
+  border-color: #565e64;
+}
 
 /* Meal Planner Styles */
 .week-nav-btn {
   background: none !important;
   border: none !important;
-  color: #ffffff !important;
+  color: #6c757d !important;
   font-size: 2rem;
   padding: 0.5rem;
   transition: all 0.3s ease;
@@ -708,9 +667,10 @@ onUnmounted(() => {
 }
 
 .week-nav-btn:hover {
-  color: #00cec9 !important;
+  color: #0d6efd !important;
   transform: scale(1.1);
 }
+
 .weekly-grid {
   display: flex;
   gap: 0.5rem;
@@ -721,9 +681,10 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
 }
+
 .meal-day-card {
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #fff;
+  border: 1px solid #dee2e6;
   border-radius: 12px;
   padding: 1rem;
   min-height: 600px;
@@ -731,20 +692,18 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  backdrop-filter: saturate(140%) blur(12px);
-  -webkit-backdrop-filter: saturate(140%) blur(12px);
 }
 
 .meal-day-card.today {
-  border-color: #00cec9;
-  background: rgba(0, 206, 201, 0.1);
+  border-color: #198754;
+  background: #d1e7dd;
 }
 
 .day-header {
   text-align: center;
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #dee2e6;
   flex-shrink: 0;
   height: 70px;
   display: flex;
@@ -753,7 +712,7 @@ onUnmounted(() => {
 }
 
 .day-header h6 {
-  color: #f5f5f5 !important;
+  color: #212529 !important;
   font-weight: 700;
   margin-bottom: 0.5rem;
   line-height: 1.2;
@@ -761,7 +720,7 @@ onUnmounted(() => {
 }
 
 .day-header small {
-  color: #ccc !important;
+  color: #6c757d !important;
   font-weight: 500;
   line-height: 1;
   font-size: 0.9rem;
@@ -775,8 +734,8 @@ onUnmounted(() => {
 }
 
 .meal-slot {
-  background: rgba(42, 42, 42, 0.5);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
   border-radius: 8px;
   padding: 1rem;
   height: 130px;
@@ -790,13 +749,13 @@ onUnmounted(() => {
 }
 
 .meal-slot:hover {
-  border-color: rgba(0, 206, 201, 0.5);
-  background: rgba(0, 206, 201, 0.05);
+  border-color: #198754;
+  background: #d1e7dd;
 }
 
 .meal-type-label {
   font-size: 0.9rem;
-  color: #f5f5f5 !important;
+  color: #212529 !important;
   margin-bottom: 0.5rem;
   font-weight: 600;
 }
@@ -806,8 +765,8 @@ onUnmounted(() => {
 }
 
 .meal-item {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  border: 1px solid #dee2e6;
   border-radius: 6px;
   padding: 0.5rem;
   cursor: move;
@@ -818,16 +777,16 @@ onUnmounted(() => {
 }
 
 .meal-item:hover {
-  background: rgba(255, 255, 255, 1);
+  background: #f8f9fa;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .meal-title {
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 0;
-  color: #000 !important;
+  color: #212529 !important;
   line-height: 1.2;
   padding-right: 25px;
 }
@@ -848,24 +807,24 @@ onUnmounted(() => {
 }
 
 .meal-items-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: #f8f9fa;
   border-radius: 2px;
 }
 
 .meal-items-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 206, 201, 0.5);
+  background: #198754;
   border-radius: 2px;
 }
 
 .meal-items-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 206, 201, 0.7);
+  background: #157347;
 }
 
 .btn-remove-meal {
   position: absolute;
   top: 0.25rem;
   right: 0.25rem;
-  background: rgba(255, 0, 0, 0.2);
+  background: #dc3545;
   border: none;
   border-radius: 50%;
   width: 20px;
@@ -873,14 +832,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff6b6b;
+  color: #fff;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-remove-meal:hover {
-  background: rgba(255, 0, 0, 0.3);
+  background: #c82333;
   transform: scale(1.1);
 }
 
@@ -894,8 +853,8 @@ onUnmounted(() => {
 }
 
 .meal-card {
-  background: rgba(30, 30, 30, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #fff;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 0.75rem;
   cursor: move;
@@ -905,9 +864,9 @@ onUnmounted(() => {
 }
 
 .meal-card:hover {
-  background: rgba(30, 30, 30, 1);
+  background: #f8f9fa;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .meal-image {
@@ -933,7 +892,7 @@ onUnmounted(() => {
   font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: #f5f5f5 !important;
+  color: #212529 !important;
   line-height: 1.2;
 }
 
@@ -956,7 +915,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #dee2e6;
 }
 
 .shopping-item:last-child {
@@ -979,8 +938,8 @@ onUnmounted(() => {
 
 /* Sustainable Alternatives */
 .sustainable-alternatives {
-  background: rgba(46, 204, 113, 0.1);
-  border: 1px solid rgba(46, 204, 113, 0.2);
+  background: #d1e7dd;
+  border: 1px solid #198754;
   border-radius: 8px;
   padding: 0.75rem;
 }
@@ -990,7 +949,7 @@ onUnmounted(() => {
 }
 
 .alternative-item:not(:last-child) {
-  border-bottom: 1px solid rgba(46, 204, 113, 0.1);
+  border-bottom: 1px solid #198754;
 }
 
 /* Responsive adjustments */
@@ -1027,8 +986,8 @@ onUnmounted(() => {
 
 /* Drag and drop visual feedback */
 .meal-slot.drag-over {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  border-color: #0d6efd;
+  background: #cfe2ff;
 }
 
 .meal-item.dragging {
