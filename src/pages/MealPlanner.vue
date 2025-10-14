@@ -1,18 +1,18 @@
 <template>
-  <div class="min-vh-100 bg-light">
+  <div class="min-vh-100 bg-light content-under-nav">
     <div class="container-fluid py-4 pt-5 px-4">
       <div class="row g-4">
         <!-- Meal Planner Column -->
         <div class="col-12 col-lg-9">
-          <div class="card shadow-sm border-0">
+          <div class="card surface-card glass-card shadow-sm border-0">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="mb-0">Weekly Meal Planner</h5>
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" @click="clearAllMeals" :disabled="!hasAnyMeals">
+                  <button class="btn btn-glass btn-sm" @click="clearAllMeals" :disabled="!hasAnyMeals">
                     Clear All
                   </button>
-                  <button class="btn btn-success btn-sm" @click="generateShoppingList" :disabled="!hasAnyMeals">
+                  <button class="btn btn-glow btn-sm" @click="generateShoppingList" :disabled="!hasAnyMeals">
                     Generate Shopping List
                   </button>
                 </div>
@@ -20,11 +20,11 @@
 
               <!-- Week Navigation -->
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <button class="btn btn-outline-secondary btn-sm" @click="previousWeek">
+                <button class="btn btn-glass btn-sm week-nav-btn" @click="previousWeek">
                   ◀
                 </button>
                 <h6 class="mb-0">{{ currentWeekRange }}</h6>
-                <button class="btn btn-outline-secondary btn-sm" @click="nextWeek">
+                <button class="btn btn-glass btn-sm week-nav-btn" @click="nextWeek">
                   ▶
                 </button>
               </div>
@@ -76,7 +76,7 @@
         <!-- Available Meals & Shopping List Column -->
         <div class="col-12 col-lg-3">
           <!-- Available Meals -->
-          <div class="card shadow-sm border-0 mb-3">
+          <div class="card surface-card glass-card shadow-sm border-0 mb-3">
             <div class="card-body">
               <h5 class="card-title mb-3">Available Meals</h5>
               <div v-if="!availableMeals.length" class="text-muted small">
@@ -112,15 +112,15 @@
           </div>
 
           <!-- Shopping List -->
-          <div class="card shadow-sm border-0">
+          <div class="card surface-card glass-card shadow-sm border-0">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Shopping List</h5>
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" @click="clearShoppingList" :disabled="!shoppingList.length">
+                  <button class="btn btn-glass btn-sm" @click="clearShoppingList" :disabled="!shoppingList.length">
                     Clear
                   </button>
-                  <button class="btn btn-success btn-sm" @click="exportShoppingList" :disabled="!shoppingList.length">
+                  <button class="btn btn-glow btn-sm" @click="exportShoppingList" :disabled="!shoppingList.length">
                     Export
                   </button>
                 </div>
@@ -599,39 +599,117 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Clean light theme matching main branch */
+/* Animated gradient background + glows (glassmorphism vibe) */
 .min-vh-100 {
-  background-color: #f8f9fa !important;
-  color: #212529 !important;
+  background: linear-gradient(135deg, #1b1b1b, #111018) !important;
+  color: #f5f5f5 !important;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+.min-vh-100::before,
+.min-vh-100::after {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 60%;
+  background:
+    radial-gradient(60% 60% at 20% 30%, rgba(102, 126, 234, 0.22) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(50% 50% at 80% 20%, rgba(118, 75, 162, 0.18) 0%, rgba(0,0,0,0) 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  animation: floatGlow 18s ease-in-out infinite alternate;
+}
+.min-vh-100::after {
+  inset: auto -10% -30% -10%;
+  height: 70%;
+  background:
+    radial-gradient(50% 50% at 80% 80%, rgba(46, 204, 113, 0.16) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(60% 60% at 10% 90%, rgba(0, 184, 148, 0.18) 0%, rgba(0,0,0,0) 70%);
+}
+@keyframes floatGlow {
+  0% { transform: translateY(0) }
+  100% { transform: translateY(10px) }
+}
+
+/* Push page content below the fixed navbar without moving the background layers at <body> level */
+.content-under-nav {
+  padding-top: 88px;
+}
+@media (min-width: 992px) {
+  .content-under-nav { padding-top: 5em; }
+}
+
+/* Override Bootstrap light backgrounds */
+.bg-light {
+  background: #1e1e1e !important;
+  color: #f5f5f5 !important;
 }
 
 .card {
-  background: #fff !important;
-  color: #212529 !important;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: #1e1e1e !important;
+  color: #f5f5f5 !important;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-.btn-success {
-  background-color: #198754;
-  border-color: #198754;
+/* Translucent surface used for the two main sections */
+.surface-card {
+  background: rgba(30,30,30,0.7) !important;
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset !important;
 }
 
-.btn-success:hover {
-  background-color: #157347;
-  border-color: #146c43;
-}
-
-.btn-outline-secondary {
-  color: #6c757d;
-  border-color: #6c757d;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #6c757d;
-  border-color: #6c757d;
+/* Glass accents for buttons/cards per provided mock */
+.btn-glow {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+.btn-glow::before {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  transition: left .6s ease;
+}
+.btn-glow:hover::before { left: 100%; }
+.btn-glow:hover { filter: brightness(1.05); box-shadow: 0 10px 25px rgba(102,126,234,.35); }
+
+.btn-glass {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 12px;
+}
+
+.btn-glass:hover { background: rgba(255, 136, 90, 0.894); }
+
+/* Meal Planner Styles */
+.week-nav-btn {
+  background: none !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 2rem;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.week-nav-btn:hover {
+  color: #00cec9 !important;
+  transform: scale(1.1);
 }
 .weekly-grid {
   display: flex;
@@ -644,21 +722,22 @@ onUnmounted(() => {
   min-width: 0;
 }
 .meal-day-card {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   padding: 1rem;
   min-height: 600px;
   transition: all 0.3s ease;
   flex: 1;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
 }
 
 .meal-day-card.today {
-  border-color: #198754;
-  background: rgba(25, 135, 84, 0.05);
+  border-color: #00cec9;
+  background: rgba(0, 206, 201, 0.1);
 }
 
 .day-header {
