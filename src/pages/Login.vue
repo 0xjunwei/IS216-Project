@@ -115,19 +115,15 @@
         </form>
 
         <div class="text-center mt-4">
-          <p class="small text-muted">
-            <span v-if="!isRegister">
-              Don't have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-success text-decoration-none fw-medium">
-                Sign up here
-              </a>
-            </span>
-            <span v-else>
-              Already have an account? 
-              <a href="#" @click.prevent="flipCard" class="text-success text-decoration-none fw-medium">
-                Sign in
-              </a>
-            </span>
+          <p class="text-muted mb-0">
+            {{ isRegister ? 'Already have an account?' : "Don't have an account?" }}
+            <button 
+              type="button" 
+              class="btn btn-link text-success text-decoration-none p-0"
+              @click="flipCard"
+            >
+              {{ isRegister ? 'Sign In' : 'Create Account' }}
+            </button>
           </p>
         </div>
       </div>
@@ -136,19 +132,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, nextTick, computed, onMounted, onUnmounted} from "vue";
 import { useRouter } from "vue-router";
 import { auth } from "../js/config.js";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-} from "firebase/auth";
-
-
-// If user is logged in should redirect away else weird
-
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
 const router = useRouter();
 
@@ -167,7 +154,7 @@ const resetInfo = ref("");
 let unsubscribe = null;
 
 onMounted(() => {
-  unsubscribe = onAuthStateChanged(auth, (user) => {
+  unsubscribe = auth.onAuthStateChanged((user) => {
     if (user) {
       router.replace({ name: "SmartRecipes" });
     }
@@ -202,11 +189,22 @@ async function handleLogin() {
   loginError.value = "";
   resetInfo.value = "";
   loggingIn.value = true;
+  
+  // Debug logging (removed sensitive data)
+  console.log("Attempting login with:", {
+    email: loginForm.value.email,
+    passwordLength: loginForm.value.password.length,
+    authDomain: auth.app.options.authDomain
+  });
+  
   try {
     await signInWithEmailAndPassword(auth, loginForm.value.email, loginForm.value.password);
-    // Needs a landing page will modify and make one for now send to the only page i have i guess
+    // Redirect to SmartRecipes page
     router.push({ name: "SmartRecipes" });
   } catch (e) {
+    console.error("Login error details:", e);
+    console.error("Error code:", e.code);
+    console.error("Error message:", e.message);
     loginError.value = mapAuthError(e);
   } finally {
     loggingIn.value = false;
@@ -222,7 +220,7 @@ async function handleRegister() {
   registering.value = true;
   try {
     await createUserWithEmailAndPassword(auth, registerForm.value.email, registerForm.value.password);
-    // Auto logins from registration
+    // Auto redirects after registration
     router.push({ name: "SmartRecipes" });
   } catch (e) {
     registerError.value = mapAuthError(e);
@@ -262,7 +260,6 @@ async function forgotPassword() {
   }
 }
 
-
 function mapAuthError(err) {
   const code = err?.code || "";
   const M = {
@@ -281,7 +278,32 @@ function mapAuthError(err) {
 
 
 <style scoped>
+/* Clean, simple styling matching main branch */
 .card {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-success {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-success:hover {
+  background-color: #157347;
+  border-color: #146c43;
+}
+
+.form-control:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.text-success {
+  color: #198754 !important;
+}
+
+.bg-success {
+  background-color: #198754 !important;
 }
 </style>

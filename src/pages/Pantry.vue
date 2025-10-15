@@ -20,7 +20,7 @@ export default {
         },
         components: {
             StreamBarcodeReader,
-            // ImageBarcodeReader
+            ImageBarcodeReader
         },
     methods: {
         createItem() {
@@ -121,12 +121,12 @@ export default {
     </div>
 
 <!-- This is for the barcode reader part, uncomment & allow camera, it should appear on the page -->
-    <!-- <div class="d-inline-block justify-content-center align-items-center">
+    <div class="d-inline-block justify-content-center align-items-center">
     <ImageBarcodeReader @decode="onDecode"></ImageBarcodeReader>
     <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
     <h2>Decoded value: {{ decodedText }}</h2>
 
-    </div> -->
+    </div>
 <!-- Displaying Pantry -->
     <h3 style="text-align: center;">Current Pantry</h3>
     <div class="row">
