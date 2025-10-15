@@ -10,15 +10,15 @@
   },
   "dependencies": {
     "@teckel/vue-barcode-reader": "^1.1.8",
+    "@mui/x-charts": "^8.14.0",
     "axios": "^1.12.2",
     "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "chart.js": "^4.5.0",
     "cors": "^2.8.5",
     "firebase": "^12.4.0",
     "vue": "^3.5.18",
-    "vue-barcode-reader": "^1.0.3",
-    "vue-qrcode-reader": "^5.7.3",
-    "vue-router": "^4.5.1",
-    "vue3-qrcode-reader": "^0.0.1"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
