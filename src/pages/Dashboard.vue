@@ -36,18 +36,26 @@
 import { ref, onMounted } from "vue";
 import Chart from "chart.js/auto";
 
-// Example data
+// ==========================
+//  CONFIGURATION
+// ==========================
+
+// ⚠️ Replace this with your real Climatiq API key
+const apiKey = "MKTD3ZWH7H455B40QK0SCW24FG";
+const apiUrl = "https://api.climatiq.io/estimate";
+
+// ==========================
+//  DATA VARIABLES
+// ==========================
 const co2Saved = ref(0);
-const foodSaved = ref(3.5); // kg
-const moneySaved = ref(12.8); // $
+const foodSaved = ref(3.5); // Example: kg saved
+const moneySaved = ref(12.8); // Example: $
 const chart = ref(null);
 const monthlyData = ref([0.8, 1.0, 1.3, 1.6, 2.0, 2.5, 3.0]);
 
-// API key and URL directly in file (not using .env)
-const apiKey = "YOUR_REAL_CLIMATIQ_API_KEY";
-const apiUrl = "https://api.climatiq.io/estimate";
-
-// Fetch CO₂ data from Climatiq
+// ==========================
+//  FUNCTIONS
+// ==========================
 async function fetchCO2Data() {
   try {
     const response = await fetch(apiUrl, {
@@ -61,10 +69,7 @@ async function fetchCO2Data() {
           activity_id: "food-waste-disposal_food_waste-landfill",
           data_version: "^1",
         },
-        parameters: {
-          mass: foodSaved.value,
-          mass_unit: "kg",
-        },
+        parameters: { mass: foodSaved.value, mass_unit: "kg" },
       }),
     });
 
@@ -80,7 +85,6 @@ async function fetchCO2Data() {
   }
 }
 
-// Update Chart.js visualization
 function updateChart() {
   const ctx = document.getElementById("co2Chart");
   if (chart.value) chart.value.destroy();
@@ -111,7 +115,9 @@ function updateChart() {
   });
 }
 
-// Initialize on mount
+// ==========================
+//  LIFECYCLE
+// ==========================
 onMounted(() => {
   updateChart();
   fetchCO2Data();
