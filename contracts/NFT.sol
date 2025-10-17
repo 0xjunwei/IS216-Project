@@ -10,7 +10,7 @@ contract MyToken is ERC721, ERC721URIStorage, Ownable {
     uint256 private _nextTokenId;
 
     constructor()
-        ERC721("MyToken", "MTK")
+        ERC721("MealPlanner", "MP")
         Ownable(msg.sender)
     {}
 
