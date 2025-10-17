@@ -39,3 +39,6 @@ credentials.json
 *.pfx
 
 # Logs
+/.firebase
+package-lock.json
+package-lock.json
