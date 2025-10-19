@@ -2,11 +2,74 @@
 <script>
 
 import { StreamBarcodeReader, ImageBarcodeReader } from '@teckel/vue-barcode-reader'
+import { auth, db } from "../js/config.js";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
+import {checkAuthentication } from "../js/authenticationCheck.js";
+checkAuthentication();
+
+async function testSetPantryToFirestore() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
+
+  const pantryRef = doc(db, "users", user.uid);
+
+  // Example pantry data
+  const testPantry = [
+    { name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
+    { name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
+    { name: "broccoli", qty: 3, unit: "pcs", expiry: "2025-10-09" },
+  ];
+
+  try {
+    await setDoc(pantryRef, { pantry: testPantry }, { merge: true });
+    console.log("Test pantry written to Firestore!");
+  } catch (err) {
+    console.error("Error writing pantry:", err);
+  }
+}
+
+
+async function retrievePantry() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn("User not logged in");
+    return;
+  }
+
+  const pantryRef = doc(db, "users", user.uid);
+  try {
+    const snapshot = await getDoc(pantryRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log("Retrieved pantry:", data.pantry);
+      // I have a pantry variable to track thus i write into it below
+      pantry.value = data.pantry || [];
+    } else {
+      console.log("No pantry found for this user.");
+    }
+  } catch (err) {
+    console.error("Error getting pantry:", err);
+  }
+}
+
+
+
 
 export default {
         data() {
             return {
+                user: null,
+                pantry: [],
+                loading: false,
+                error: '',
+                addItemVisible: false,
+                today: new Date(),
                 //Item details and requirements
+                userName: '',
                 newItemName: '',
                 itemExpiry: '',
                 category: '',
@@ -22,12 +85,70 @@ export default {
                 openCamera: false
             };
         },
+        created() {
+    // Listen for auth changes (not async)
+        this.unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        this.user = currentUser;
+        if (this.user) {
+            this.retrievePantry();
+        } else {
+            this.pantry = [];
+        }
+        });
+    },
+    beforeDestroy() {
+    if (this.unsubscribe) this.unsubscribe();
+    },
         components: {
             //Barcode Scanner components
             StreamBarcodeReader,
             ImageBarcodeReader
         },
     methods: {
+         async retrievePantry() {
+      if (!this.user) return;
+      // async read pantry data from Firestore
+    },
+    async savePantry() {
+      if (!this.user) return;
+      // async write pantry data to Firestore
+    },
+        async savePantry() {
+      if (!this.user) return;
+      const pantryRef = doc(db, "users", this.user.uid);
+      try {
+        await setDoc(pantryRef, { pantry: this.pantry }, { merge: true });
+      } catch (err) {
+        console.error("Error saving pantry", err);
+      }
+    },
+    async retrievePantry() {
+      if (!this.user) return;
+      this.loading = true;
+      const pantryRef = doc(db, "users", this.user.uid);
+      try {
+        const snapshot = await getDoc(pantryRef);
+        if (snapshot.exists()) {
+          this.pantry = snapshot.data().pantry || [];
+        }
+      } catch (err) {
+        console.error("Error retrieving pantry", err);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async addItem(newItem) {
+      this.pantry.push(newItem);
+      await this.savePantry();
+    },
+    async removeItem(index) {
+      this.pantry.splice(index, 1);
+      await this.savePantry();
+    },
+    async clearPantry() {
+      this.pantry = [];
+      await this.savePantry();
+    },
         createItem() {
             if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
                 let freshness = this.checkFreshness(this.itemExpiry);
@@ -114,114 +235,128 @@ export default {
     },
     onLoaded() {
         console.log('Camera ready')
+    },
+
+    toggleAddItem() {
+        this.addItemVisible = !this.addItemVisible;
     }
-}
+    }
 }
 </script>
 
 <template>
-<div class="page-container bg-light">
+
 <!-- Adding new items form -->
-<div class="row">
-  <div class="card form-container p-2 mx-5 my-2 col-5 h-100">
-    <h3 style="text-align: center;">Add new Item</h3>
-    <form id="pantryForm" class="row g-3" v-on:submit.prevent="createItem" v-on:keyup.enter="createItem" v-on:submit="this.decodedText = ''">
-        <!-- New Item input & Category -->
-        <div class="input-group col-6 d-flex ">
-            <input type="text" class="col-6 border border-2 border-black" placeholder="New item Name" v-model="newItemName">
+<div class="page-container bg-light">
+    <div class="d-inline-block align-items-center my-3 mx-auto container bg-secondary rounded-2">
+        <div class="d-flex align-items-center" style="width: 100%;">
+            <div class="flex-grow-1 text-center"><h1>Welcome {{ userName }}</h1></div>
+            <button class="btn btn-info ml-auto" @click="addItemVisible = !addItemVisible" v-if="!addItemVisible">Add item <img style="width: 25px;"src="../assets/add.png" alt=""></button>
+            <button class="btn btn-info ml-auto" @click="addItemVisible = !addItemVisible" v-if="addItemVisible">Hide item <img style="width: 25px;"src="../assets/minus.png" alt=""></button>
+            
         </div>
-        <div class="col-6">
-        <select name="category" class="form-select d-block col-3 border border-2 border-black" v-model="category">
+
+        <p class="text-start">Today is {{ today }}</p>
+        <!-- Display addItem -->
+            <div class="card form-container p-4 mx-auto add-item-popup fade-in" v-if="addItemVisible" style="max-width: 500px;">
+                <h3 class="text-center text-dark mb-3">New Item</h3>
+                    <form id="pantryForm" class="row g-3" v-on:submit.prevent="createItem" v-on:keyup.enter="createItem" v-on:submit="this.decodedText = ''">
+                    <div class="col-12 mb-2">
+                        <input type="text" class="form-control" placeholder="New item name" v-model="newItemName">
+                    </div>
+        <div class="col-12 mb-2">
+            <select name="category" class="form-select" v-model="category">
                 <option value="" selected disabled>Select a category</option>
-                <option v-for="category in categories">{{ category }}</option>
+                <option v-for="category in categories" :key="category">{{ category }}</option>
             </select>
         </div>
-        <div>
-            <div>
-                <input type="text" class="col-3 border border-2 border-black" placeholder="Barcode (optional)" v-model="decodedText" v-if="!this.decodedText">
-                <input type="text" class="col-3" v-model="decodedText" v-if="this.decodedText">
+        <!-- Barcode input/scanner -->
+        <div class="col-12 mb-2 border rounded p-2 bg-white">
+            <label class="form-label small text-secondary">Scan or type barcode (optional):</label>
+            <div class="d-flex flex-row gap-2">
+                <input type="text" class="form-control" placeholder="Barcode" v-model="decodedText">
+                <button type="button" class="btn btn-outline-primary" v-on:click="openCamera = !openCamera">
+                    {{ openCamera ? 'Close Scanner' : 'Scan Barcode' }}
+                </button>
             </div>
-            <button v-on:click="openCamera = !openCamera">Scan Barcode</button>
-            <div v-if="openCamera && this.decodedText == ''">
+            <div v-if="openCamera && this.decodedText == ''" class="mt-2">
                 <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
             </div>
-            <ImageBarcodeReader @decode="onDecode"></ImageBarcodeReader>
+            <div class="mt-1">
+                <ImageBarcodeReader @decode="onDecode"/>
+            </div>
         </div>
-        <div>
-            <h5>Expiry Date:</h5>
-            <input type="date" id="itemExpiry" class="New_item" placeholder="Expiry date" v-model="itemExpiry">
+        <div class="col-12 mb-2">
+            <input type="date" id="itemExpiry" class="form-control" v-model="itemExpiry">
         </div>
-        <div>
-        </div>
-        <div class="">
-            <button type="submit" class="btn btn-secondary w-100" v-if="this.newItemName == ''|| this.category == '' || this.itemExpiry == ''">Add</button>
-            <button type="submit" class="btn btn-primary w-100" v-else>Add</button>
-
-            <div v-if="this.newItemName == ''|| this.category == '' || this.itemExpiry == ''">
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100" :disabled="!newItemName || !category || !itemExpiry">Add</button>
+            <div v-if="!newItemName || !category || !itemExpiry" class="mt-1">
                 <small class="text-danger">Please fill in all required fields</small>
             </div>
         </div>
-        </form>
-    </div>
-    <!-- Overview Card -->
-    <div class="card d-flex p-2 ms-auto mx-5 my-2 col-5 h-100 text-center">
-        <div>
-            <h2>Overview</h2>
-            <table class="table table-bordered table-striped">
-                <tr>
-                    <th>Categories</th>
-                    <th>No. of Items</th>
-                    <th>Fresh</th>
-                    <th>Expiring Soon</th>
-                    <th>Expired</th>
-                </tr>
-                <tr>
-                    <td>Meat Items:</td>
-                    <td>{{  meats.length }}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Fresh').length)}}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Expiring Soon').length)}}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Expired').length)}}</td>
-                </tr>
-                <tr>
-                    <td>Fruits & Vegetables Items:</td>
-                    <td>{{  fruitsVegetables.length }}</td>
-                    <td>{{ (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length)}}</td>
-                    <td>{{ (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length)}}</td>
-                    <td>{{ (fruitsVegetables.filter(item=>item.freshness == 'Expired').length)}}</td>
-                </tr>
-                <tr>
-                    <td>Dairy & Drinks Items:</td>
-                    <td>{{  dairyDrinks.length }}</td>
-                    <td>{{ (dairyDrinks.filter(item=>item.freshness == 'Fresh').length)}}</td>
-                    <td>{{ (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length)}}</td>
-                    <td>{{ (dairyDrinks.filter(item=>item.freshness == 'Expired').length)}}</td>
-                </tr>
-                <tr>
-                    <td>Other Items:</td>
-                    <td>{{  others.length }}</td>
-                    <td>{{ (others.filter(item=>item.freshness == 'Fresh').length)}}</td>
-                    <td>{{ (others.filter(item=>item.freshness == 'Expiring Soon').length)}}</td>
-                    <td>{{ (others.filter(item=>item.freshness == 'Expired').length)}}</td>
-                </tr>
-                <tr>
-                    <td>Total Items:</td>
-                    <td>{{ meats.length + fruitsVegetables.length + dairyDrinks.length + others.length }}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Fresh').length) + (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length) + (dairyDrinks.filter(item=>item.freshness == 'Fresh').length) + (others.filter(item=>item.freshness == 'Fresh').length) }}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Expiring Soon').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length) + (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length) + (others.filter(item=>item.freshness == 'Expiring Soon').length) }}</td>
-                    <td>{{ (meats.filter(item=>item.freshness == 'Expired').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expired').length) + (dairyDrinks.filter(item=>item.freshness == 'Expired').length) + (others.filter(item=>item.freshness == 'Expired').length) }}</td>
-                </tr>
-            </table>
+    </form>
+</div>
+</div>
+
+<div class="container my-3 overview-container rounded-2 p-3">
+    <h1 class=" text-center">Pantry Overview</h1>
+    <div class="row mx-2 my-3">
+            <!--Total Items -->
+            <div class="card shadow d-flex col mx-2 text-center total-items-card">
+                <h4>Total Items</h4>
+                <h1>{{ meats.length + fruitsVegetables.length + dairyDrinks.length + others.length }}</h1>
+                <p class=" text-start subtle-white">
+                    Meats: {{ meats.length}} <br>
+                    Fruits & Vegetables: {{ fruitsVegetables.length}} <br>
+                    Dairy & Drinks: {{ dairyDrinks.length}} <br>
+                    Others: {{ others.length}} <br>
+                </p>
+            </div>
+            <!-- Fresh Items -->
+            <div class="card shadow d-flex col mx-2 text-center">
+                <h4>Fresh Items</h4>
+                <h1>{{ (meats.filter(item=>item.freshness == 'Fresh').length) + (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length) + (dairyDrinks.filter(item=>item.freshness == 'Fresh').length) + (others.filter(item=>item.freshness == 'Fresh').length) }}</h1>
+                <p class=" text-start text-secondary">
+                    Meats: {{ (meats.filter(item=>item.freshness == 'Fresh').length)}} <br>
+                    Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length)}} <br>
+                    Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Fresh').length)}} <br>
+                    Others: {{ (others.filter(item=>item.freshness == 'Fresh').length)}} <br>
+                </p>        
+            </div>
+            <!--Expiring  -->
+            <div class="card d-flex col mx-2 text-lg-center">
+                <h4>Expiring Items</h4>
+                <h1>{{ (meats.filter(item=>item.freshness == 'Expiring Soon').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length) + (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length) + (others.filter(item=>item.freshness == 'Expiring Soon').length) }}</h1>
+                <p class=" text-start text-secondary">
+                    Meats: {{ (meats.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
+                    Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
+                    Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
+                    Others: {{ (others.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
+                </p>
+            </div>
+            <div class="card d-flex col mx-2 text-center">
+                <h4>Expired Items</h4>
+                <h1>{{ (meats.filter(item=>item.freshness == 'Expired').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expired').length) + (dairyDrinks.filter(item=>item.freshness == 'Expired').length) + (others.filter(item=>item.freshness == 'Expired').length) }}</h1>
+                <p class=" text-start text-secondary">
+                    Meats: {{ (meats.filter(item=>item.freshness == 'Expired').length)}} <br>
+                    Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Expired').length)}} <br>
+                    Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Expired').length)}} <br>
+                    Others: {{ (others.filter(item=>item.freshness == 'Expired').length)}} <br>
+                </p>
+
+            </div>
         </div>
     </div>
-</div>
 
     
 <!-- Displaying Pantry -->
-    <div class="pantry-container bg-light p-3">
-    <h3 style="text-align: center;">Current Pantry</h3>
-    <div class="row">
-        <div class="card container border border-3 secondary col-3 ">
-            <h4 style="text-align: center; text-decoration: underline;">Meats</h4>
+    <div class="container rounded-2 p-3">
+    <h1 style="text-align: center;">Current Pantry</h1>
+    <div class="row ">
+        <!-- Meat Card -->
+        <div class="card rounded-3 container border border-3 col pantry-height meat-card">
+            <h4 style="text-align: center;">Meats</h4>
             <ul>
                 <li v-for="(item, index) in meats" :class="item.freshnessColor">
                     <strong>{{ item.text }} (Expiry: {{ item.expiry }}) </strong>
@@ -231,24 +366,27 @@ export default {
                 </li>
             </ul>
         </div>
-        <div class="card container border border-3 col-3">
-            <h4 style="text-align: center; text-decoration: underline;">Fruits & Vegetables</h4>
+        <!-- F&V card -->
+        <div class="card container border border-3  col pantry-height fruits-vegetables-card">
+            <h4 style="text-align: center;">Fruits & Vegetables</h4>
             <ul>
                 <li v-for="(item, index) in fruitsVegetables"  :class="item.freshnessColor">
                     <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
                 </li>
             </ul>
         </div>
-        <div class="card container border border-3 col-3">
-            <h4 style="text-align: center; text-decoration: underline;">Dairy & Drinks</h4>
+        <!-- Dairy and Drinks card-->
+        <div class="card container border border-3 col pantry-height dairy-drinks-card">
+            <h4 style="text-align: center">Dairy & Drinks</h4>
             <ul>
                 <li v-for="(item, index) in dairyDrinks" :class="item.freshnessColor">
                     <strong class="">{{ item.text }}</strong> (Expiry: {{ item.expiry }})  <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
                 </li>
             </ul>
         </div>
-        <div class="card container border border-3 col-3 ">
-            <h4 style="text-align: center; text-decoration: underline;">Others</h4>
+        <!-- Others card-->
+        <div class="card container border border-3 col pantry-height others-card">
+            <h4 style="text-align: center">Others</h4>
             <ul>
                 <li v-for="(item, index) in others" :class="item.freshnessColor">
                     <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
@@ -261,24 +399,88 @@ export default {
 </template>
 
 <style scoped>
+
     .bg-light {
-    background: rgb(1, 12, 48)!important;
-    color: #f5f5f5 !important;
+        background: linear-gradient(to bottom, #060149, #2b3a85)!important;;
+        color: #f5f5f5 !important;
     }
 
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* full viewport height */
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* full viewport height */
+        padding-top: 72px; /* space for fixed navbar (adjust if navbar height differs) */
+    }
+
+    .pantry-height {
+        min-height: 200px;
+    }
+
+    .overview-container {
+        overflow-y: auto; 
+        background: linear-gradient(to left, rgb(226, 224, 224), rgb(211, 209, 209));
+        color: #060149;
+    }
+
+    .total-items-card {
+        background: linear-gradient(to bottom, rgb(2, 68, 32),rgb(3, 179, 61));
+        color: #f5f5f5;
+        border: solid 3px black;
+    }
+    .subtle-white {
+        color: #dfdada;
+    }
+
+    .meat-card {
+        background: linear-gradient(to bottom, rgb(190, 23, 23), rgb(238, 191, 191));
+        color: #f5f5f5;
+    }
+    .fruits-vegetables-card {
+        background: linear-gradient(to bottom, rgb(14, 104, 14), rgb(191, 238, 191));
+        color: #f5f5f5;
+    }
+    .dairy-drinks-card {
+        background: linear-gradient(to bottom, rgb(8, 56, 156), rgb(173, 201, 238));
+        color: #f5f5f5;
+    }
+    .others-card {
+        background: linear-gradient(to bottom, rgb(156, 78, 8), rgb(238, 201, 173));
+        color: #f5f5f5;
+    }
+
+    .total-items-card, .overview-card, .fresh-card, .expiring-card, .expired-card {
+    transition: box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .total-items-card:hover, .overview-card:hover {
+        box-shadow: 0 4px 20px rgba(20,120,50,0.13);
+    }
+
+    .add-item-popup {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 380px;
+        position: relative;
+        background: #fff;
+        box-shadow: 0 8px 32px rgba(0,20,80,0.10);
 }
 
-.form-container {
+.fade-in {
+    animation: fadeInCard 0.6s ease;
 }
 
-.pantry-container {
-  flex-grow: 1; /* occupy remaining space */
-  overflow-y: auto; /* scroll if content overflows */
-  height: 0; /* important to allow flex-grow to work properly */
+@keyframes fadeInCard {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
+
 
 </style>
