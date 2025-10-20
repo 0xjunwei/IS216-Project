@@ -15,15 +15,25 @@
                 <h2 class="h5 fw-semibold mb-1">Select Your Ingredients</h2>
                 <p class="text-muted small">Add ingredients manually or import from your pantry.</p>
                 </div>
+              <div class="d-flex flex-column flex-sm-row gap-2 mt-2 mt-md-0">
               <button 
                 v-if="user"
                 @click="retrievePantry"
-                class="btn btn-success btn-sm mt-2 mt-md-0"
+                class="btn btn-success btn-sm mt-2 mt-md-0 flex-fill"
               >
                 <i class="bi bi-cart me-2"></i>
                 Import from Pantry
               </button>
+              <button 
+                  v-if="user"
+                  @click="openWalletModal"
+                  class="btn btn-outline-primary btn-sm mt-2 mt-md-0 flex-fill"
+                >
+                  <i class="bi bi-wallet2 me-2"></i>
+                  Manage Wallet
+                </button>
                 </div>
+              </div>
 
             <!-- Add Custom Ingredients -->
             <div class="add-ingredient-wrapper mb-4">
@@ -98,6 +108,27 @@
           </div>
         </div>
 
+        <!--Show wallet Modal for Web3 wallet-->
+        <div v-if="showWalletModal" class="modal-overlay" @click="closeWalletModal">
+          <div class="modal-content" @click.stop>
+            <h5 class="mb-3">Manage Web3 Wallet</h5>
+            <p class="text-muted small mb-3">Add or update your wallet address.</p>
+            <div class="mb-3">
+              <label for="walletAddressInput" class="form-label">Ethereum Wallet Address</label>
+              <input
+                type="text"
+                class="form-control"
+                id="walletAddressInput"
+                v-model="walletAddress"
+                placeholder="0x"
+              />
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary" @click="closeWalletModal">Cancel</button>
+              <button class="btn btn-success" @click="saveWalletAddress">Save</button>
+            </div>
+          </div>
+        </div>
         <!-- Deduct Ingredients Modal -->
         <div v-if="showDeductModal" class="modal-overlay" @click="closeDeductModal">
           <div class="modal-content-large" @click.stop>
@@ -314,6 +345,7 @@ import { auth, db } from "../js/config.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
 import axios from 'axios';
+import { ethers } from 'ethers';
 
 // Get API key from environment variables
 const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY;
@@ -351,11 +383,101 @@ const showDeductModal = ref(false);
 const deductingRecipe = ref(null);
 const deductIngredientsList = ref([]);
 
+// Web3 wallet
+const showWalletModal = ref(false);
+const walletAddress = ref('');
+
+const MINTER_PRIVATE_KEY = import.meta.env.VITE_MINTER_PRIVATE_KEY;
+const RPC_URL = import.meta.env.VITE_ARBITRUM_SEPOLIA_RPC_URL;
+const CONTRACT_ADDRESS = '0x7Cc19FbE20D26Eeab6620c61e8E6918bb710C1aF';
+const TOKEN_URI = 'https://storage.googleapis.com/meal-planner-badges/1.json#';
+
+// ABI for safeMint
+const contractABI = [
+  {
+    "name": "safeMint",
+    "type": "function",
+    "inputs": [
+      { "name": "to", "type": "address" },
+      { "name": "uri", "type": "string" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  }
+];
+
 // Recipe data
 const recipes = ref([]);
 const loading = ref(false);
 const error = ref('');
 
+
+// Wallet Modal Functions
+async function openWalletModal() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  showWalletModal.value = true;
+  try {
+    const userDocRef = doc(db, "users", currentUser.uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (docSnap.exists() && docSnap.data().walletAddress) {
+      walletAddress.value = docSnap.data().walletAddress;
+    } else {
+      walletAddress.value = '';
+    }
+    
+  } catch (err) {
+    console.error("Error fetching wallet address:", err);
+  }
+}
+
+function closeWalletModal() {
+  showWalletModal.value = false;
+  walletAddress.value = '';
+}
+
+async function saveWalletAddress() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+
+  try {
+    const userDocRef = doc(db, "users", currentUser.uid);
+    await setDoc(userDocRef, { walletAddress: walletAddress.value.trim() }, { merge: true });
+    closeWalletModal();
+  } catch (err) {
+    console.error("Error saving wallet address:", err);
+  }
+}
+
+async function mintSustainabilityBadge(recipientAddress) {
+  if (!MINTER_PRIVATE_KEY || !RPC_URL) {
+    console.error("Minter private key or RPC URL is not configured in the .env file.");
+    return;
+  }
+  if (!ethers.isAddress(recipientAddress)) {
+    console.error("Invalid recipient address for NFT minting:", recipientAddress);
+    return;
+  }
+
+  try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
+
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+
+    console.log(`Attempting to mint sustainability badge to ${recipientAddress}...`);
+    const tx = await contract.safeMint(recipientAddress, TOKEN_URI);
+    
+    console.log("Mint transaction sent. Waiting for confirmation...", `TxHash: ${tx.hash}`);
+
+    const receipt = await tx.wait();
+  
+    console.log("NFT minted successfully! Transaction confirmed");
+  } catch (error) {
+    console.error("Failed to mint NFT:", error.reason || error.message);
+  }
+}
 
 // Add ingredient to list
 function addCustomIngredient() {
@@ -551,7 +673,8 @@ function computeSustainabilityScore(recipe, pantryItems, expiringIngredients) {
   // 50% based on ingredients we have
   // 30% based on ingredients we don't need to buy
   // 20% based on using expiring ingredients
-  // Math might not be perfect but should be ok?
+  // Math might not be perfect but should be ok, since its 80 points (which i think is sustainable if u utilize your whole pantry)
+  // else more if expiring.
   let score = (50 * pantryRatio) + (30 * missingPenalty) + (20 * expiringBonus);
   score = Math.round(score);
   
@@ -697,53 +820,51 @@ function toggleDetails(recipe) {
 // Open modal to deduct ingredients from pantry
 async function openDeductModal(recipe) {
   deductingRecipe.value = recipe;
-  
   const currentUser = auth.currentUser;
   if (!currentUser) return;
-  
+
   try {
-    
     const pantryRef = doc(db, "users", currentUser.uid);
     const snapshot = await getDoc(pantryRef);
-    
-    let pantryData = {};
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      const pantryItems = data.pantry || [];
-      
-      for (let i = 0; i < pantryItems.length; i++) {
-        const item = pantryItems[i];
-        const itemName = item.name.toLowerCase();
-        pantryData[itemName] = {
-          quantity: item.qty || item.quantity || 0,
-          unit: item.unit || ''
-        };
-      }
-    }
-    
+    const pantryItems = snapshot.exists() ? snapshot.data().pantry || [] : [];
+
     const ingredientsList = [];
-    for (let i = 0; i < recipe.usedIngredients.length; i++) {
-      const ingredient = recipe.usedIngredients[i];
-      const ingredientName = ingredient.name.toLowerCase();
-      const pantryInfo = pantryData[ingredientName] || {};
+    for (const recipeIngredient of recipe.usedIngredients) {
+      const recipeIngredientName = recipeIngredient.name.toLowerCase();
+
+      // Find the best matching pantry item using a more flexible search.
+      const matchedPantryItem = pantryItems.find(pantryItem => {
+        const pantryItemName = pantryItem.name.toLowerCase();
+        return recipeIngredientName.includes(pantryItemName) || pantryItemName.includes(recipeIngredientName);
+      });
+
       
+      const pantryInfo = matchedPantryItem
+        ? {
+            quantity: matchedPantryItem.qty || matchedPantryItem.quantity || 0,
+            unit: matchedPantryItem.unit || '',
+          }
+        : { quantity: 0, unit: '' };
+
+      const hasStock = pantryInfo.quantity > 0;
+
       ingredientsList.push({
-        name: ingredient.name,
-        amount: ingredient.amount || 0,
-        unit: ingredient.unit || '',
-        pantryQuantity: pantryInfo.quantity || 0,
-        pantryUnit: pantryInfo.unit || ingredient.unit || '',
-        selected: true,
-        deductAmount: ingredient.amount || 0,
-        deductUnit: ingredient.unit || ''
+        name: recipeIngredient.name,
+        amount: recipeIngredient.amount || 0,
+        unit: recipeIngredient.unit || '',
+        pantryQuantity: pantryInfo.quantity,
+        pantryUnit: pantryInfo.unit || recipeIngredient.unit || '',
+        selected: hasStock,
+        deductAmount: recipeIngredient.amount || 0,
+        deductUnit: recipeIngredient.unit || '',
       });
     }
-    
+
     deductIngredientsList.value = ingredientsList;
     showDeductModal.value = true;
-    
+
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Error opening deduct modal:", err);
   }
 }
 
@@ -756,36 +877,33 @@ function closeDeductModal() {
 async function confirmDeductIngredients() {
   const currentUser = auth.currentUser;
   if (!currentUser) return;
+
+  const recipeToDeduct = deductingRecipe.value;
   
   try {
-    // Get current pantry from Firebase
     const pantryRef = doc(db, "users", currentUser.uid);
     const snapshot = await getDoc(pantryRef);
     
     if (snapshot.exists()) {
-      const data = snapshot.data();
-      let pantryItems = data.pantry || [];
-      
+      const userData = snapshot.data();
+      let pantryItems = userData.pantry || [];
+      const userWalletAddress = userData.walletAddress || null;
 
-      for (let i = 0; i < deductIngredientsList.value.length; i++) {
-        const ingredient = deductIngredientsList.value[i];
+      for (const ingredient of deductIngredientsList.value) {
         if (ingredient.selected && ingredient.deductAmount > 0) {
-          let foundIndex = -1;
-          for (let j = 0; j < pantryItems.length; j++) {
-            if (pantryItems[j].name.toLowerCase() === ingredient.name.toLowerCase()) {
-              foundIndex = j;
-              break;
-            }
-          }
+          const foundIndex = pantryItems.findIndex(pantryItem => {
+              const pantryItemName = pantryItem.name.toLowerCase();
+              const ingredientName = ingredient.name.toLowerCase();
+              return ingredientName.includes(pantryItemName) || pantryItemName.includes(ingredientName);
+          });
           
           if (foundIndex !== -1) {
             const currentQty = pantryItems[foundIndex].qty || pantryItems[foundIndex].quantity || 0;
             const newQty = currentQty - ingredient.deductAmount;
-            // Remove item if quantity is 0 or negative
+
             if (newQty <= 0) {
               pantryItems.splice(foundIndex, 1);
             } else {
-              // update if not neg / 0
               if (pantryItems[foundIndex].qty !== undefined) {
                 pantryItems[foundIndex].qty = newQty;
               } else {
@@ -796,12 +914,22 @@ async function confirmDeductIngredients() {
         }
       }
       
-      // Save updated pantry to Firebase
       await setDoc(pantryRef, { pantry: pantryItems }, { merge: true });
+
+      await refreshSelectedIngredients();
+
+      if (recipeToDeduct && recipeToDeduct.sustainabilityScore >= 80) {
+        if (userWalletAddress) {
+          mintSustainabilityBadge(userWalletAddress);
+        } else {
+          console.log("User earned a badge but has no wallet address configured.");
+        }
+      }
+      
       closeDeductModal();
     }
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Error confirming ingredient deduction:", err);
   }
 }
 
@@ -814,11 +942,14 @@ async function retrievePantry() {
   try {
     const pantryRef = doc(db, "users", user.uid);
     const snapshot = await getDoc(pantryRef);
-    
+
     if (snapshot.exists()) {
       const data = snapshot.data();
+      console.log("Pantry data:", data);
       const pantryItems = data.pantry || [];
       const existingIngredients = [];
+      console.log("Pantry items:", pantryItems);
+      
       for (let i = 0; i < selectedIngredients.value.length; i++) {
         existingIngredients.push(selectedIngredients.value[i].name.toLowerCase());
       }
