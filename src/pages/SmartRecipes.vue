@@ -1006,7 +1006,7 @@ async function testSetPantryToFirestore() {
 
 // Make function available for testing in browser console
 window.testSetPantryToFirestore = testSetPantryToFirestore;
-
+//window.mintSustainabilityBadge = mintSustainabilityBadge;
 </script>
 
 <style scoped>
