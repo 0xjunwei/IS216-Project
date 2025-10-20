@@ -1010,7 +1010,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
 </script>
 
 <style scoped>
-/* Light theme styling */
+
 .card {
   border-radius: 0.5rem;
   transition: box-shadow 0.3s ease;
@@ -1065,7 +1065,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   cursor: not-allowed;
 }
 
-/* Form inputs */
+
 .form-control {
   border-radius: 0.375rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -1074,24 +1074,6 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
 .form-control:focus {
   border-color: #198754;
   box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
-}
-
-/* Buttons */
-.btn {
-  border-radius: 0.375rem;
-  padding: 0.5rem 1.25rem;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-.btn-success {
-  background-color: #198754;
-  border-color: #198754;
 }
 
 .btn-success:hover:not(:disabled) {
@@ -1115,7 +1097,6 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   color: #fff;
 }
 
-/* List items */
 .list-group-item {
   border-radius: 0.375rem;
   margin-bottom: 0.5rem;
@@ -1198,7 +1179,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   color: #000;
 }
 
-/* Progress bar */
+
 .progress {
   height: 0.5rem;
   border-radius: 0.25rem;
@@ -1208,7 +1189,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   background-color: #198754;
 }
 
-/* Form range slider */
+
 .form-range::-webkit-slider-thumb {
   background-color: #198754;
 }
@@ -1217,7 +1198,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   background-color: #198754;
 }
 
-/* Transitions */
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.2s;
 }
@@ -1226,19 +1207,16 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   opacity: 0;
 }
 
-/* Recipe card images */
 .object-fit-cover {
   object-fit: cover;
 }
 
-/* Spinner */
 .spinner-border-sm {
   width: 1rem;
   height: 1rem;
   border-width: 0.15em;
 }
 
-/* Modal styling */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1273,7 +1251,7 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile responsive */
+
 @media (max-width: 768px) {
   .add-ingredient-wrapper {
     gap: 6px;
@@ -1297,7 +1275,6 @@ window.testSetPantryToFirestore = testSetPantryToFirestore;
   }
 }
 
-/* Scrollbar styling for webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
