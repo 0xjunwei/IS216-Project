@@ -9,51 +9,51 @@ import {checkAuthentication } from "../js/authenticationCheck.js";
 checkAuthentication();
 
 async function testSetPantryToFirestore() {
-  const user = auth.currentUser;
-  if (!user) {
+    const user = auth.currentUser;
+    if (!user) {
     console.warn("User not logged in");
     return;
-  }
+    }
 
-  const pantryRef = doc(db, "users", user.uid);
+    const pantryRef = doc(db, "users", user.uid);
 
   // Example pantry data
-  const testPantry = [
+    const testPantry = [
     { name: "chicken breast", qty: 2, unit: "pcs", expiry: "2025-10-20" },
     { name: "milk", qty: 1, unit: "L", expiry: "2025-10-10" },
     { name: "broccoli", qty: 3, unit: "pcs", expiry: "2025-10-09" },
-  ];
+    ];
 
-  try {
+    try {
     await setDoc(pantryRef, { pantry: testPantry }, { merge: true });
     console.log("Test pantry written to Firestore!");
-  } catch (err) {
+    } catch (err) {
     console.error("Error writing pantry:", err);
-  }
+    }
 }
 
 
 async function retrievePantry() {
-  const user = auth.currentUser;
-  if (!user) {
+    const user = auth.currentUser;
+    if (!user) {
     console.warn("User not logged in");
     return;
-  }
+    }
 
-  const pantryRef = doc(db, "users", user.uid);
-  try {
+    const pantryRef = doc(db, "users", user.uid);
+    try {
     const snapshot = await getDoc(pantryRef);
     if (snapshot.exists()) {
-      const data = snapshot.data();
-      console.log("Retrieved pantry:", data.pantry);
+        const data = snapshot.data();
+        console.log("Retrieved pantry:", data.pantry);
       // I have a pantry variable to track thus i write into it below
-      pantry.value = data.pantry || [];
+        pantry.value = data.pantry || [];
     } else {
-      console.log("No pantry found for this user.");
+        console.log("No pantry found for this user.");
     }
-  } catch (err) {
+    } catch (err) {
     console.error("Error getting pantry:", err);
-  }
+    }
 }
 
 
@@ -105,49 +105,49 @@ export default {
             ImageBarcodeReader
         },
     methods: {
-         async retrievePantry() {
-      if (!this.user) return;
+    async retrievePantry() {
+        if (!this.user) return;
       // async read pantry data from Firestore
     },
     async savePantry() {
-      if (!this.user) return;
+        if (!this.user) return;
       // async write pantry data to Firestore
     },
         async savePantry() {
-      if (!this.user) return;
-      const pantryRef = doc(db, "users", this.user.uid);
-      try {
+        if (!this.user) return;
+        const pantryRef = doc(db, "users", this.user.uid);
+        try {
         await setDoc(pantryRef, { pantry: this.pantry }, { merge: true });
-      } catch (err) {
+        } catch (err) {
         console.error("Error saving pantry", err);
-      }
+        }
     },
     async retrievePantry() {
-      if (!this.user) return;
-      this.loading = true;
-      const pantryRef = doc(db, "users", this.user.uid);
-      try {
+        if (!this.user) return;
+        this.loading = true;
+        const pantryRef = doc(db, "users", this.user.uid);
+        try {
         const snapshot = await getDoc(pantryRef);
         if (snapshot.exists()) {
-          this.pantry = snapshot.data().pantry || [];
+            this.pantry = snapshot.data().pantry || [];
         }
-      } catch (err) {
+        } catch (err) {
         console.error("Error retrieving pantry", err);
-      } finally {
+        } finally {
         this.loading = false;
-      }
+        }
     },
     async addItem(newItem) {
-      this.pantry.push(newItem);
-      await this.savePantry();
+        this.pantry.push(newItem);
+        await this.savePantry();
     },
     async removeItem(index) {
-      this.pantry.splice(index, 1);
-      await this.savePantry();
+        this.pantry.splice(index, 1);
+        await this.savePantry();
     },
     async clearPantry() {
-      this.pantry = [];
-      await this.savePantry();
+        this.pantry = [];
+        await this.savePantry();
     },
         createItem() {
             if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
@@ -248,7 +248,7 @@ export default {
 
 <!-- Adding new items form -->
 <div class="page-container bg-light">
-    <div class="d-inline-block align-items-center my-3 mx-auto container bg-secondary rounded-2">
+    <div class="d-inline-block align-items-center my-3 mx-auto container overview-container rounded-2">
         <div class="d-flex align-items-center" style="width: 100%;">
             <div class="flex-grow-1 text-center"><h1>Welcome {{ userName }}</h1></div>
             <button class="btn btn-info ml-auto" @click="addItemVisible = !addItemVisible" v-if="!addItemVisible">Add item <img style="width: 25px;"src="../assets/add.png" alt=""></button>
@@ -256,7 +256,7 @@ export default {
             
         </div>
 
-        <p class="text-start">Today is {{ today }}</p>
+        <p class="text-start opacity-50">Today is {{ today }}</p>
         <!-- Display addItem -->
             <div class="card form-container p-4 mx-auto add-item-popup fade-in" v-if="addItemVisible" style="max-width: 500px;">
                 <h3 class="text-center text-dark mb-3">New Item</h3>
@@ -401,7 +401,7 @@ export default {
 <style scoped>
 
     .bg-light {
-        background: linear-gradient(to bottom, #060149, #2b3a85)!important;;
+        background-image: url('../assets/background.jpg');
         color: #f5f5f5 !important;
     }
 
