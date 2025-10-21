@@ -980,6 +980,40 @@ async function retrievePantry() {
   }
 }
 
+async function refreshSelectedIngredients() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+
+  try {
+    const pantryRef = doc(db, "users", currentUser.uid);
+    const snapshot = await getDoc(pantryRef);
+
+    if (snapshot.exists()) {
+      const updatedPantryItems = snapshot.data().pantry || [];
+
+      const pantryItemNames = updatedPantryItems.map(item => item.name.toLowerCase());
+
+
+      selectedIngredients.value = selectedIngredients.value.filter(ingredient => {
+
+        if (!ingredient.fromPantry) {
+          return true;
+        }
+
+        return pantryItemNames.includes(ingredient.name.toLowerCase());
+      });
+    } else {
+
+      selectedIngredients.value = selectedIngredients.value.filter(
+        (ingredient) => !ingredient.fromPantry
+      );
+    }
+  } catch (err) {
+    console.error("Error refreshing selected ingredients:", err);
+  }
+}
+
+
 // Testing function to add sample pantry data
 async function testSetPantryToFirestore() {
   const user = auth.currentUser;
