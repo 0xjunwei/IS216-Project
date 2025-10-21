@@ -101,11 +101,6 @@ export default {
                 category: '',
                 //Item categories
                 categories: ['Meat','Fruits & Vegetable','Dairy & Drinks','Others'],
-                //Arrays of different categories
-                meats: [],
-                fruitsVegetables: [],
-                dairyDrinks: [],
-                others: [],
                 //Barcode Scanner usage
                 decodedText: "",
                 openCamera: false
@@ -130,6 +125,20 @@ export default {
             StreamBarcodeReader,
             ImageBarcodeReader
         },
+    computed: {
+        meats() {
+            return this.pantry.filter(item => item.category === 'Meat');
+        },
+        fruitsVegetables() {
+            return this.pantry.filter(item => item.category === 'Fruits & Vegetable');
+        },
+        dairyDrinks() {
+            return this.pantry.filter(item => item.category === 'Dairy & Drinks');
+        },
+        others() {
+            return this.pantry.filter(item => item.category === 'Others');
+        }
+    },
     methods: {
     async retrievePantry() {
         if (!this.user) return;
@@ -176,61 +185,32 @@ export default {
         await this.savePantry();
     },
         createItem() {
-            if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
-                let freshness = this.checkFreshness(this.itemExpiry);
-                const defaultBootStrap = 'rounded-3 my-2 text-center';
-                let freshnessColor = '';
-                //colouring based on freshness
-                if (freshness == 'Fresh') {
-                    freshnessColor = defaultBootStrap + ' bg-success';
-                } else if (freshness == 'Expiring Soon') {
-                    freshnessColor = defaultBootStrap + ' bg-warning';
-                } else if (freshness == 'Expired') {
-                    freshnessColor = defaultBootStrap + ' bg-danger';
-                }
+        if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
+            let freshness = this.checkFreshness(this.itemExpiry);
 
-                if (this.category == 'Meat') {
-                    this.meats.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Fruits & Vegetable') {
-                    this.fruitsVegetables.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Dairy & Drinks') {
-                    this.dairyDrinks.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Others') {
-                    this.others.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                }
-                this.newItemName = '';
-                this.itemExpiry = '';
-                this.category = '';
-            }
-        },
+            const newItem = {
+                // previously you were using text, which is not matching to firestore
+                
+                name: this.newItemName.trim(),
+                expiry: this.itemExpiry,
+                category: this.category,
+                freshness: freshness,
+                barcode: this.decodedText,
+            };
+
+
+            this.pantry.push(newItem);
+
+            // You didnt save too
+            this.savePantry(); 
+
+
+            this.newItemName = '';
+            this.itemExpiry = '';
+            this.category = '';
+            this.decodedText = '';
+        }
+    },
 
     checkFreshness(expiryDate) {
         const today = new Date();
@@ -249,8 +229,14 @@ export default {
         }
     },
     
-    removeItem(index) {
-        this.items.splice(index,1)
+    async removeItem(itemToRemove) {
+        const index = this.pantry.findIndex(item => item.name === itemToRemove.name && item.expiry === itemToRemove.expiry);
+        
+        if (index > -1) {
+            this.pantry.splice(index, 1);
+            // Previously you forgot to savePantry again
+            await this.savePantry(); 
+        }
     },
 
 
@@ -385,48 +371,50 @@ export default {
 
 <!-- Displaying Pantry -->
     <div class="container rounded-2 p-3">
-    <h1 style="text-align: center; color: #000;">Current Pantry</h1>
-    <div class="row ">
-        <!-- Meat Card -->
-        <div class="card rounded-3 container border border-3 col pantry-height meat-card">
-            <h4 style="text-align: center;">Meats</h4>
-            <ul>
-                <li v-for="(item, index) in meats" :class="item.freshnessColor">
-                    <strong>{{ item.text }} (Expiry: {{ item.expiry }}) </strong>
-                    <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
-                    
-                    <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
+        <h1 style="text-align: center; color: #000;">Current Pantry</h1>
+        <div class="row ">
+            <div class="card rounded-3 container border border-3 col pantry-height meat-card">
+                <h4 style="text-align: center;">Meats</h4>
+                <ul>
+                    <li v-for="(item, index) in meats" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }} (Expiry: {{ item.expiry }}) </strong>
+                        <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3  col pantry-height fruits-vegetables-card">
+                <h4 style="text-align: center;">Fruits & Vegetables</h4>
+                <ul>
+                    <li v-for="(item, index) in fruitsVegetables" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3 col pantry-height dairy-drinks-card">
+                <h4 style="text-align: center">Dairy & Drinks</h4>
+                <ul>
+                    <li v-for="(item, index) in dairyDrinks" :key="item.name + index" :class="item.freshnessColor">
+                        <strong class="">{{ item.name }}</strong> (Expiry: {{ item.expiry }})  
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3 col pantry-height others-card">
+                <h4 style="text-align: center">Others</h4>
+                <ul>
+                    <li v-for="(item, index) in others" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
         </div>
-        <!-- F&V card -->
-        <div class="card container border border-3  col pantry-height fruits-vegetables-card">
-            <h4 style="text-align: center;">Fruits & Vegetables</h4>
-            <ul>
-                <li v-for="(item, index) in fruitsVegetables"  :class="item.freshnessColor">
-                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-        <!-- Dairy and Drinks card-->
-        <div class="card container border border-3 col pantry-height dairy-drinks-card">
-            <h4 style="text-align: center">Dairy & Drinks</h4>
-            <ul>
-                <li v-for="(item, index) in dairyDrinks" :class="item.freshnessColor">
-                    <strong class="">{{ item.text }}</strong> (Expiry: {{ item.expiry }})  <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-        <!-- Others card-->
-        <div class="card container border border-3 col pantry-height others-card">
-            <h4 style="text-align: center">Others</h4>
-            <ul>
-                <li v-for="(item, index) in others" :class="item.freshnessColor">
-                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-    </div>
     </div>
 </div>
 </template>
