@@ -8,6 +8,56 @@ import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
 import {checkAuthentication } from "../js/authenticationCheck.js";
 checkAuthentication();
 
+
+
+async function retrievePantry() {
+  const user = auth.currentUser;
+  if (!user) {
+    return;
+  }
+
+  try {
+    const pantryRef = doc(db, "users", user.uid);
+    const snapshot = await getDoc(pantryRef);
+
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log("Pantry data:", data);
+      const pantryItems = data.pantry || [];
+      const existingIngredients = [];
+      console.log("Pantry items:", pantryItems);
+      
+      for (let i = 0; i < selectedIngredients.value.length; i++) {
+        existingIngredients.push(selectedIngredients.value[i].name.toLowerCase());
+      }
+      for (let i = 0; i < pantryItems.length; i++) {
+        const item = pantryItems[i];
+        const itemName = item.name.toLowerCase();
+
+        let alreadyExists = false;
+        for (let j = 0; j < existingIngredients.length; j++) {
+          if (existingIngredients[j] === itemName) {
+            alreadyExists = true;
+            break;
+          }
+        }
+        
+        if (!alreadyExists) {
+          selectedIngredients.value.push({
+            id: nextId++,
+            name: itemName,
+            expiry: item.expiry || null,
+            fromPantry: true
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+
 async function testSetPantryToFirestore() {
     const user = auth.currentUser;
     if (!user) {
@@ -32,31 +82,7 @@ async function testSetPantryToFirestore() {
     }
 }
 
-
-async function retrievePantry() {
-    const user = auth.currentUser;
-    if (!user) {
-    console.warn("User not logged in");
-    return;
-    }
-
-    const pantryRef = doc(db, "users", user.uid);
-    try {
-    const snapshot = await getDoc(pantryRef);
-    if (snapshot.exists()) {
-        const data = snapshot.data();
-        console.log("Retrieved pantry:", data.pantry);
-      // I have a pantry variable to track thus i write into it below
-        pantry.value = data.pantry || [];
-    } else {
-        console.log("No pantry found for this user.");
-    }
-    } catch (err) {
-    console.error("Error getting pantry:", err);
-    }
-}
-
-
+window.testSetPantryToFirestore = testSetPantryToFirestore;
 
 
 export default {
@@ -299,13 +325,13 @@ export default {
 </div>
 </div>
 
-<!-- This is for the barcode reader part, uncomment & allow camera, it should appear on the page -->
+<!-- This is for the barcode reader part, uncomment & allow camera, it should appear on the page
     <div class="d-inline-block justify-content-center align-items-center">
     <ImageBarcodeReader @decode="onDecode"></ImageBarcodeReader>
     <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
     <h2>Decoded value: {{ decodedText }}</h2>
 
-    </div>
+    </div> -->
 <div class="container my-3 overview-container rounded-2 p-3">
     <h1 class=" text-center">Pantry Overview</h1>
     <div class="row mx-2 my-3">
@@ -356,10 +382,10 @@ export default {
         </div>
     </div>
 
-    
+
 <!-- Displaying Pantry -->
     <div class="container rounded-2 p-3">
-    <h1 style="text-align: center;">Current Pantry</h1>
+    <h1 style="text-align: center; color: #000;">Current Pantry</h1>
     <div class="row ">
         <!-- Meat Card -->
         <div class="card rounded-3 container border border-3 col pantry-height meat-card">
@@ -409,6 +435,8 @@ export default {
 
     .bg-light {
         background-image: url('../assets/background.jpg');
+        background-size: cover;
+        background-position: center;
         color: #f5f5f5 !important;
     }
 
