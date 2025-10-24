@@ -12,7 +12,7 @@ const routes = [
   { path: "/pantry", name: "Pantry", component: Pantry },
   { path: "/recipe", name: "SmartRecipes", component: SmartRecipes },
   { path: "/planner", name: "MealPlanner", component: MealPlanner },
-  { path: "/dashboard", name: "MealPlanner", component: Dashboard },
+  { path: "/dashboard", name: "Dashboard", component: Dashboard },
 ];
 
 const router = createRouter({
