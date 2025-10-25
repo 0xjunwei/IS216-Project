@@ -198,6 +198,8 @@ export default {
                 category: this.category,
                 freshness: freshness,
                 barcode: this.decodedText,
+                quantity: this.quantity,
+                unit: this.unit
             };
 
 
