@@ -97,6 +97,8 @@ export default {
                 //Item details and requirements
                 userName: '',
                 newItemName: '',
+                quantity: 0,
+                unit: '',
                 itemExpiry: '',
                 category: '',
                 //Item categories
@@ -276,6 +278,11 @@ export default {
                     <div class="col-12 mb-2">
                         <input type="text" class="form-control" placeholder="New item name" v-model="newItemName">
                     </div>
+                    <div>
+                        <input type="number" class="form-control col" placeholder="Quantity" v-model="quantity">
+                        <input type="text" class="form-control col" placeholder="Unit" v-model="Unit">
+                    </div>
+
         <div class="col-12 mb-2">
             <select name="category" class="form-select" v-model="category">
                 <option value="" selected disabled>Select a category</option>
