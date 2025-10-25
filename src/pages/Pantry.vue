@@ -192,7 +192,6 @@ export default {
 
             const newItem = {
                 // previously you were using text, which is not matching to firestore
-                
                 name: this.newItemName.trim(),
                 expiry: this.itemExpiry,
                 category: this.category,
@@ -213,6 +212,9 @@ export default {
             this.itemExpiry = '';
             this.category = '';
             this.decodedText = '';
+            this.quantity = 0;
+            this.unit = '';
+            this.addItemVisible = false;
         }
     },
 
@@ -227,7 +229,7 @@ export default {
         if (diffDays > 7) {
             return 'Fresh';
         } else if (diffDays >= 0 && diffDays <= 7) {
-            return 'Expiring Soon';
+            return 'Expiring-Soon';
         } else {
             return 'Expired';
         }
@@ -263,26 +265,30 @@ export default {
 <template>
 
 <!-- Adding new items form -->
-<div class="page-container bg-light">
+<div class="page-container background-color">
     <div class="d-inline-block align-items-center my-3 mx-auto container overview-container rounded-2">
         <div class="d-flex align-items-center" style="width: 100%;">
             <div class="flex-grow-1 text-center"><h1>Welcome {{ userName }}</h1></div>
-            <button class="btn btn-info ml-auto" @click="addItemVisible = !addItemVisible" v-if="!addItemVisible">Add item <img style="width: 25px;"src="../assets/add.png" alt=""></button>
-            <button class="btn btn-info ml-auto" @click="addItemVisible = !addItemVisible" v-if="addItemVisible">Hide item <img style="width: 25px;"src="../assets/minus.png" alt=""></button>
+            <button class="btn btn-success ml-auto" @click="addItemVisible = !addItemVisible" v-if="!addItemVisible">Add item <img style="width: 25px;"src="../assets/add.png" alt=""></button>
+            <button class="btn btn-success ml-auto" @click="addItemVisible = !addItemVisible" v-if="addItemVisible">Hide item <img style="width: 25px;"src="../assets/minus.png" alt=""></button>
             
         </div>
 
         <p class="text-start opacity-50">Today is {{ today }}</p>
         <!-- Display addItem -->
-            <div class="card form-container p-4 mx-auto add-item-popup fade-in" v-if="addItemVisible" style="max-width: 500px;">
+            <div class="card form-container d-flex p-4 mx-auto add-item-popup fade-in" v-if="addItemVisible" style="max-width: 500px;">
                 <h3 class="text-center text-dark mb-3">New Item</h3>
                     <form id="pantryForm" class="row g-3" v-on:submit.prevent="createItem" v-on:keyup.enter="createItem" v-on:submit="this.decodedText = ''">
                     <div class="col-12 mb-2">
                         <input type="text" class="form-control" placeholder="New item name" v-model="newItemName">
                     </div>
-                    <div>
-                        <input type="number" class="form-control col" placeholder="Quantity" v-model="quantity">
-                        <input type="text" class="form-control col" placeholder="Unit" v-model="unit">
+                    <div class="d-flex gap-2">
+                        <div class="col">
+                        <input type="number" class="form-control" placeholder="Quantity" v-model="quantity">
+                        </div>
+                        <div class="col">
+                        <input type="text" class="form-control" placeholder="Unit" v-model="unit">
+                        </div>
                     </div>
 
         <div class="col-12 mb-2">
@@ -290,6 +296,9 @@ export default {
                 <option value="" selected disabled>Select a category</option>
                 <option v-for="category in categories" :key="category">{{ category }}</option>
             </select>
+        </div>
+                <div class="col-12 mb-2">
+            <input type="date" id="itemExpiry" class="form-control" v-model="itemExpiry">
         </div>
         <!-- Barcode input/scanner -->
         <div class="col-12 mb-2 border rounded p-2 bg-white">
@@ -307,12 +316,10 @@ export default {
                 <ImageBarcodeReader @decode="onDecode"/>
             </div>
         </div>
-        <div class="col-12 mb-2">
-            <input type="date" id="itemExpiry" class="form-control" v-model="itemExpiry">
-        </div>
+
         <div class="col-12">
-            <button type="submit" class="btn btn-primary w-100" :disabled="!newItemName || !category || !itemExpiry">Add</button>
-            <div v-if="!newItemName || !category || !itemExpiry" class="mt-1">
+            <button type="submit" class="btn btn-success w-100" :disabled="!newItemName || !category || !itemExpiry ||!unit ||!quantity">Add</button>
+            <div v-if="!newItemName || !category || !itemExpiry ||!unit ||!quantity" class="mt-1">
                 <small class="text-danger">Please fill in all required fields</small>
             </div>
         </div>
@@ -331,10 +338,10 @@ export default {
     <h1 class=" text-center">Pantry Overview</h1>
     <div class="row mx-2 my-3">
             <!--Total Items -->
-            <div class="card shadow d-flex col mx-2 text-center total-items-card">
-                <h4>Total Items</h4>
+            <div class="card shadow d-flex col mx-2 text-center hover-effect" >
+                <h4>Total <br> Items</h4>
                 <h1>{{ meats.length + fruitsVegetables.length + dairyDrinks.length + others.length }}</h1>
-                <p class=" text-start subtle-white">
+                <p class=" text-start">
                     Meats: {{ meats.length}} <br>
                     Fruits & Vegetables: {{ fruitsVegetables.length}} <br>
                     Dairy & Drinks: {{ dairyDrinks.length}} <br>
@@ -342,10 +349,10 @@ export default {
                 </p>
             </div>
             <!-- Fresh Items -->
-            <div class="card shadow d-flex col mx-2 text-center">
-                <h4>Fresh Items</h4>
+            <div class="card shadow d-flex col mx-2 text-center hover-effect">
+                <h4>Fresh <br>Items</h4>
                 <h1>{{ (meats.filter(item=>item.freshness == 'Fresh').length) + (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length) + (dairyDrinks.filter(item=>item.freshness == 'Fresh').length) + (others.filter(item=>item.freshness == 'Fresh').length) }}</h1>
-                <p class=" text-start text-secondary">
+                <p class=" text-start">
                     Meats: {{ (meats.filter(item=>item.freshness == 'Fresh').length)}} <br>
                     Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Fresh').length)}} <br>
                     Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Fresh').length)}} <br>
@@ -353,20 +360,20 @@ export default {
                 </p>        
             </div>
             <!--Expiring  -->
-            <div class="card d-flex col mx-2 text-lg-center">
+            <div class="card d-flex col mx-2 text-center hover-effect">
                 <h4>Expiring Items</h4>
-                <h1>{{ (meats.filter(item=>item.freshness == 'Expiring Soon').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length) + (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length) + (others.filter(item=>item.freshness == 'Expiring Soon').length) }}</h1>
-                <p class=" text-start text-secondary">
-                    Meats: {{ (meats.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
-                    Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
-                    Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
-                    Others: {{ (others.filter(item=>item.freshness == 'Expiring Soon').length)}} <br>
+                <h1>{{ (meats.filter(item=>item.freshness == 'Expiring-Soon').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expiring-Soon').length) + (dairyDrinks.filter(item=>item.freshness == 'Expiring-Soon').length) + (others.filter(item=>item.freshness == 'Expiring-Soon').length) }}</h1>
+                <p class=" text-start">
+                    Meats: {{ (meats.filter(item=>item.freshness == 'Expiring-Soon').length)}} <br>
+                    Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Expiring-Soon').length)}} <br>
+                    Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Expiring-Soon').length)}} <br>
+                    Others: {{ (others.filter(item=>item.freshness == 'Expiring-Soon').length)}} <br>
                 </p>
             </div>
-            <div class="card d-flex col mx-2 text-center">
+            <div class="card d-flex col mx-2 text-center hover-effect">
                 <h4>Expired Items</h4>
                 <h1>{{ (meats.filter(item=>item.freshness == 'Expired').length) + (fruitsVegetables.filter(item=>item.freshness == 'Expired').length) + (dairyDrinks.filter(item=>item.freshness == 'Expired').length) + (others.filter(item=>item.freshness == 'Expired').length) }}</h1>
-                <p class=" text-start text-secondary">
+                <p class=" text-start">
                     Meats: {{ (meats.filter(item=>item.freshness == 'Expired').length)}} <br>
                     Fruits & Vegetables: {{ (fruitsVegetables.filter(item=>item.freshness == 'Expired').length)}} <br>
                     Dairy & Drinks: {{ (dairyDrinks.filter(item=>item.freshness == 'Expired').length)}} <br>
@@ -379,45 +386,52 @@ export default {
 
 
 <!-- Displaying Pantry -->
-    <div class="container rounded-2 p-3">
+    <div class="container overview-container rounded-2 p-3">
         <h1 style="text-align: center; color: #000;">Current Pantry</h1>
-        <div class="row ">
-            <div class="card rounded-3 container border border-3 col pantry-height meat-card">
+        <div class="row">
+            <div class="card rounded-3 container border border-3 col pantry-height hover-effect">
                 <h4 style="text-align: center;">Meats</h4>
                 <ul>
-                    <li v-for="(item, index) in meats" :key="item.name + index" :class="item.freshnessColor">
-                        <strong>{{ item.name }} (Expiry: {{ item.expiry }}) </strong>
+                    <li class="rounded-2" v-for="(item, index) in meats" :key="item.name + index" :class="item.freshness">
+                        <strong>{{ item.name }}, [{{ item.quantity }} {{ item.unit }}] </strong> <br>
+                        (Expiry: {{ item.expiry }})
                         <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
                         
                         <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
                     </li>
                 </ul>
             </div>
-            <div class="card container border border-3  col pantry-height fruits-vegetables-card">
+            <div class="card container border border-3  col pantry-height hover-effect">
                 <h4 style="text-align: center;">Fruits & Vegetables</h4>
                 <ul>
-                    <li v-for="(item, index) in fruitsVegetables" :key="item.name + index" :class="item.freshnessColor">
-                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
-                        
+                    <li class="rounded-2" v-for="(item, index) in fruitsVegetables" :key="item.name + index" :class="item.freshness">
+                        <strong>{{ item.name }}, [{{ item.quantity }} {{ item.unit }}]</strong> <br>
+                        (Expiry: {{ item.expiry }}) 
+                        <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
+
                         <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
                     </li>
                 </ul>
             </div>
-            <div class="card container border border-3 col pantry-height dairy-drinks-card">
+            <div class="card container border border-3 col pantry-height hover-effect">
                 <h4 style="text-align: center">Dairy & Drinks</h4>
                 <ul>
-                    <li v-for="(item, index) in dairyDrinks" :key="item.name + index" :class="item.freshnessColor">
-                        <strong class="">{{ item.name }}</strong> (Expiry: {{ item.expiry }})  
+                    <li class="rounded-2" v-for="(item, index) in dairyDrinks" :key="item.name + index" :class="item.freshness">
+                        <strong>{{ item.name }}, [{{ item.quantity }} {{ item.unit }}]</strong> <br>
+                        (Expiry: {{ item.expiry }})
+                        <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
                         
                         <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
                     </li>
                 </ul>
             </div>
-            <div class="card container border border-3 col pantry-height others-card">
+            <div class="card container border border-3 col pantry-height hover-effect">
                 <h4 style="text-align: center">Others</h4>
                 <ul>
-                    <li v-for="(item, index) in others" :key="item.name + index" :class="item.freshnessColor">
-                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
+                    <li class="rounded" v-for="(item, index) in others" :key="item.name + index" :class="item.freshness">
+                        <strong>{{ item.name }}, [{{ item.quantity }} {{ item.unit }}]</strong> <br>
+                        (Expiry: {{ item.expiry }}) 
+                        <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
                         
                         <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
                     </li>
@@ -430,8 +444,8 @@ export default {
 
 <style scoped>
 
-    .bg-light {
-        background-image: url('../assets/background.jpg');
+    .background-color {
+        background-color: #ffffff;
         background-size: cover;
         background-position: center;
         color: #f5f5f5 !important;
@@ -448,44 +462,15 @@ export default {
         min-height: 200px;
     }
 
-    .overview-container {
+    .overview-container, .pantry-container {
         overflow-y: auto; 
-        background: linear-gradient(to left, rgb(226, 224, 224), rgb(211, 209, 209));
+        background-color: #ffffff;
         color: #060149;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .total-items-card {
-        background: linear-gradient(to bottom, rgb(2, 68, 32),rgb(3, 179, 61));
-        color: #f5f5f5;
-        border: solid 3px black;
-    }
     .subtle-white {
         color: #dfdada;
-    }
-
-    .meat-card {
-        background: linear-gradient(to bottom, rgb(190, 23, 23), rgb(238, 191, 191));
-        color: #f5f5f5;
-    }
-    .fruits-vegetables-card {
-        background: linear-gradient(to bottom, rgb(14, 104, 14), rgb(191, 238, 191));
-        color: #f5f5f5;
-    }
-    .dairy-drinks-card {
-        background: linear-gradient(to bottom, rgb(8, 56, 156), rgb(173, 201, 238));
-        color: #f5f5f5;
-    }
-    .others-card {
-        background: linear-gradient(to bottom, rgb(156, 78, 8), rgb(238, 201, 173));
-        color: #f5f5f5;
-    }
-
-    .total-items-card, .overview-card, .fresh-card, .expiring-card, .expired-card {
-    transition: box-shadow 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    }
-    .total-items-card:hover, .overview-card:hover {
-        box-shadow: 0 4px 20px rgba(20,120,50,0.13);
     }
 
     .add-item-popup {
@@ -497,6 +482,24 @@ export default {
         position: relative;
         background: #fff;
         box-shadow: 0 8px 32px rgba(0,20,80,0.10);
+}
+.Fresh{
+    background-color: lightgreen;
+}
+
+.Expiring-Soon {
+    background-color: orange;
+}
+
+.Expired {
+    background-color: crimson;
+}
+
+.hover-effect:hover {
+    background-color: rgb(180, 236, 180);
+    box-shadow: 0 4px 20px rgba(20,120,50,0.13);
+    transition: background-color 1s ease;
+    border: dotted 2px green;
 }
 
 .fade-in {
