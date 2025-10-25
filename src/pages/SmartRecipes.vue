@@ -913,7 +913,7 @@ async function confirmDeductIngredients() {
           }
         }
       }
-      
+      closeDeductModal();
       await setDoc(pantryRef, { pantry: pantryItems }, { merge: true });
 
       await refreshSelectedIngredients();
