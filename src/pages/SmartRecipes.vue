@@ -642,7 +642,7 @@ function displayNutrient(recipe, nutrientName) {
 }
 
 // Calculate sustainability score for recipe
-function computeSustainabilityScore(recipe, pantryItems, expiringIngredients) {
+function computeSustainabilityScore(recipe, expiringIngredients) {
   // Count total ingredients needed
   const usedCount = recipe.usedIngredients ? recipe.usedIngredients.length : 0;
   const missedCount = recipe.missedIngredients ? recipe.missedIngredients.length : 0;
@@ -754,7 +754,6 @@ async function findRecipes() {
         // Calculate sustainability score
         const scoreData = computeSustainabilityScore(
           { usedIngredients: used, missedIngredients: missed },
-          selectedIngredients.value,
           expiringIngredients
         );
 
@@ -926,7 +925,7 @@ async function confirmDeductIngredients() {
         }
       }
       
-      closeDeductModal();
+      
     }
   } catch (err) {
     console.error("Error confirming ingredient deduction:", err);
