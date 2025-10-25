@@ -199,7 +199,7 @@ export default {
                 freshness: freshness,
                 barcode: this.decodedText,
                 quantity: this.quantity,
-                unit: this.unit
+                unit: this.unit,
             };
 
 
@@ -282,7 +282,7 @@ export default {
                     </div>
                     <div>
                         <input type="number" class="form-control col" placeholder="Quantity" v-model="quantity">
-                        <input type="text" class="form-control col" placeholder="Unit" v-model="Unit">
+                        <input type="text" class="form-control col" placeholder="Unit" v-model="unit">
                     </div>
 
         <div class="col-12 mb-2">
