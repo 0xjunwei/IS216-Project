@@ -8,6 +8,56 @@ import { doc, collection, getDoc, setDoc, getDocs } from "firebase/firestore";
 import {checkAuthentication } from "../js/authenticationCheck.js";
 checkAuthentication();
 
+
+
+async function retrievePantry() {
+  const user = auth.currentUser;
+  if (!user) {
+    return;
+  }
+
+  try {
+    const pantryRef = doc(db, "users", user.uid);
+    const snapshot = await getDoc(pantryRef);
+
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log("Pantry data:", data);
+      const pantryItems = data.pantry || [];
+      const existingIngredients = [];
+      console.log("Pantry items:", pantryItems);
+      
+      for (let i = 0; i < selectedIngredients.value.length; i++) {
+        existingIngredients.push(selectedIngredients.value[i].name.toLowerCase());
+      }
+      for (let i = 0; i < pantryItems.length; i++) {
+        const item = pantryItems[i];
+        const itemName = item.name.toLowerCase();
+
+        let alreadyExists = false;
+        for (let j = 0; j < existingIngredients.length; j++) {
+          if (existingIngredients[j] === itemName) {
+            alreadyExists = true;
+            break;
+          }
+        }
+        
+        if (!alreadyExists) {
+          selectedIngredients.value.push({
+            id: nextId++,
+            name: itemName,
+            expiry: item.expiry || null,
+            fromPantry: true
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+
 async function testSetPantryToFirestore() {
     const user = auth.currentUser;
     if (!user) {
@@ -32,31 +82,7 @@ async function testSetPantryToFirestore() {
     }
 }
 
-
-async function retrievePantry() {
-    const user = auth.currentUser;
-    if (!user) {
-    console.warn("User not logged in");
-    return;
-    }
-
-    const pantryRef = doc(db, "users", user.uid);
-    try {
-    const snapshot = await getDoc(pantryRef);
-    if (snapshot.exists()) {
-        const data = snapshot.data();
-        console.log("Retrieved pantry:", data.pantry);
-      // I have a pantry variable to track thus i write into it below
-        pantry.value = data.pantry || [];
-    } else {
-        console.log("No pantry found for this user.");
-    }
-    } catch (err) {
-    console.error("Error getting pantry:", err);
-    }
-}
-
-
+window.testSetPantryToFirestore = testSetPantryToFirestore;
 
 
 export default {
@@ -71,15 +97,12 @@ export default {
                 //Item details and requirements
                 userName: '',
                 newItemName: '',
+                quantity: 0,
+                unit: '',
                 itemExpiry: '',
                 category: '',
                 //Item categories
                 categories: ['Meat','Fruits & Vegetable','Dairy & Drinks','Others'],
-                //Arrays of different categories
-                meats: [],
-                fruitsVegetables: [],
-                dairyDrinks: [],
-                others: [],
                 //Barcode Scanner usage
                 decodedText: "",
                 openCamera: false
@@ -104,6 +127,20 @@ export default {
             StreamBarcodeReader,
             ImageBarcodeReader
         },
+    computed: {
+        meats() {
+            return this.pantry.filter(item => item.category === 'Meat');
+        },
+        fruitsVegetables() {
+            return this.pantry.filter(item => item.category === 'Fruits & Vegetable');
+        },
+        dairyDrinks() {
+            return this.pantry.filter(item => item.category === 'Dairy & Drinks');
+        },
+        others() {
+            return this.pantry.filter(item => item.category === 'Others');
+        }
+    },
     methods: {
     async retrievePantry() {
         if (!this.user) return;
@@ -150,61 +187,32 @@ export default {
         await this.savePantry();
     },
         createItem() {
-            if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
-                let freshness = this.checkFreshness(this.itemExpiry);
-                const defaultBootStrap = 'rounded-3 my-2 text-center';
-                let freshnessColor = '';
-                //colouring based on freshness
-                if (freshness == 'Fresh') {
-                    freshnessColor = defaultBootStrap + ' bg-success';
-                } else if (freshness == 'Expiring Soon') {
-                    freshnessColor = defaultBootStrap + ' bg-warning';
-                } else if (freshness == 'Expired') {
-                    freshnessColor = defaultBootStrap + ' bg-danger';
-                }
+        if (this.newItemName.trim() !== '' && this.itemExpiry && this.category) {
+            let freshness = this.checkFreshness(this.itemExpiry);
 
-                if (this.category == 'Meat') {
-                    this.meats.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Fruits & Vegetable') {
-                    this.fruitsVegetables.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Dairy & Drinks') {
-                    this.dairyDrinks.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                } else if (this.category == 'Others') {
-                    this.others.push({
-                        text: this.newItemName.trim(),
-                        expiry: this.itemExpiry,
-                        category: this.category,
-                        freshness: freshness,
-                        barcode: this.decodedText,
-                        freshnessColor: freshnessColor
-                });
-                }
-                this.newItemName = '';
-                this.itemExpiry = '';
-                this.category = '';
-            }
-        },
+            const newItem = {
+                // previously you were using text, which is not matching to firestore
+                
+                name: this.newItemName.trim(),
+                expiry: this.itemExpiry,
+                category: this.category,
+                freshness: freshness,
+                barcode: this.decodedText,
+            };
+
+
+            this.pantry.push(newItem);
+
+            // You didnt save too
+            this.savePantry(); 
+
+
+            this.newItemName = '';
+            this.itemExpiry = '';
+            this.category = '';
+            this.decodedText = '';
+        }
+    },
 
     checkFreshness(expiryDate) {
         const today = new Date();
@@ -223,8 +231,14 @@ export default {
         }
     },
     
-    removeItem(index) {
-        this.items.splice(index,1)
+    async removeItem(itemToRemove) {
+        const index = this.pantry.findIndex(item => item.name === itemToRemove.name && item.expiry === itemToRemove.expiry);
+        
+        if (index > -1) {
+            this.pantry.splice(index, 1);
+            // Previously you forgot to savePantry again
+            await this.savePantry(); 
+        }
     },
 
 
@@ -264,6 +278,11 @@ export default {
                     <div class="col-12 mb-2">
                         <input type="text" class="form-control" placeholder="New item name" v-model="newItemName">
                     </div>
+                    <div>
+                        <input type="number" class="form-control col" placeholder="Quantity" v-model="quantity">
+                        <input type="text" class="form-control col" placeholder="Unit" v-model="Unit">
+                    </div>
+
         <div class="col-12 mb-2">
             <select name="category" class="form-select" v-model="category">
                 <option value="" selected disabled>Select a category</option>
@@ -299,6 +318,13 @@ export default {
 </div>
 </div>
 
+<!-- This is for the barcode reader part, uncomment & allow camera, it should appear on the page
+    <div class="d-inline-block justify-content-center align-items-center">
+    <ImageBarcodeReader @decode="onDecode"></ImageBarcodeReader>
+    <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
+    <h2>Decoded value: {{ decodedText }}</h2>
+
+    </div> -->
 <div class="container my-3 overview-container rounded-2 p-3">
     <h1 class=" text-center">Pantry Overview</h1>
     <div class="row mx-2 my-3">
@@ -349,51 +375,53 @@ export default {
         </div>
     </div>
 
-    
+
 <!-- Displaying Pantry -->
     <div class="container rounded-2 p-3">
-    <h1 style="text-align: center;">Current Pantry</h1>
-    <div class="row ">
-        <!-- Meat Card -->
-        <div class="card rounded-3 container border border-3 col pantry-height meat-card">
-            <h4 style="text-align: center;">Meats</h4>
-            <ul>
-                <li v-for="(item, index) in meats" :class="item.freshnessColor">
-                    <strong>{{ item.text }} (Expiry: {{ item.expiry }}) </strong>
-                    <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
-                    
-                    <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
+        <h1 style="text-align: center; color: #000;">Current Pantry</h1>
+        <div class="row ">
+            <div class="card rounded-3 container border border-3 col pantry-height meat-card">
+                <h4 style="text-align: center;">Meats</h4>
+                <ul>
+                    <li v-for="(item, index) in meats" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }} (Expiry: {{ item.expiry }}) </strong>
+                        <div v-if="item.barcode">barcode: {{ item.barcode }}</div>
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3  col pantry-height fruits-vegetables-card">
+                <h4 style="text-align: center;">Fruits & Vegetables</h4>
+                <ul>
+                    <li v-for="(item, index) in fruitsVegetables" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3 col pantry-height dairy-drinks-card">
+                <h4 style="text-align: center">Dairy & Drinks</h4>
+                <ul>
+                    <li v-for="(item, index) in dairyDrinks" :key="item.name + index" :class="item.freshnessColor">
+                        <strong class="">{{ item.name }}</strong> (Expiry: {{ item.expiry }})  
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card container border border-3 col pantry-height others-card">
+                <h4 style="text-align: center">Others</h4>
+                <ul>
+                    <li v-for="(item, index) in others" :key="item.name + index" :class="item.freshnessColor">
+                        <strong>{{ item.name }}</strong> (Expiry: {{ item.expiry }}) 
+                        
+                        <button class="btn btn-secondary" v-on:click="removeItem(item)"> delete </button>
+                    </li>
+                </ul>
+            </div>
         </div>
-        <!-- F&V card -->
-        <div class="card container border border-3  col pantry-height fruits-vegetables-card">
-            <h4 style="text-align: center;">Fruits & Vegetables</h4>
-            <ul>
-                <li v-for="(item, index) in fruitsVegetables"  :class="item.freshnessColor">
-                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-        <!-- Dairy and Drinks card-->
-        <div class="card container border border-3 col pantry-height dairy-drinks-card">
-            <h4 style="text-align: center">Dairy & Drinks</h4>
-            <ul>
-                <li v-for="(item, index) in dairyDrinks" :class="item.freshnessColor">
-                    <strong class="">{{ item.text }}</strong> (Expiry: {{ item.expiry }})  <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-        <!-- Others card-->
-        <div class="card container border border-3 col pantry-height others-card">
-            <h4 style="text-align: center">Others</h4>
-            <ul>
-                <li v-for="(item, index) in others" :class="item.freshnessColor">
-                    <strong>{{ item.text }}</strong> (Expiry: {{ item.expiry }}) <button class="btn btn-secondary" v-on:click="removeItem"> delete </button>
-                </li>
-            </ul>
-        </div>
-    </div>
     </div>
 </div>
 </template>
@@ -402,6 +430,8 @@ export default {
 
     .bg-light {
         background-image: url('../assets/background.jpg');
+        background-size: cover;
+        background-position: center;
         color: #f5f5f5 !important;
     }
 
