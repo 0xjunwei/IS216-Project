@@ -5,7 +5,10 @@
       <div class="container-fluid d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
           <h2 class="text-success mb-0 me-4 fw-bold">
-            <router-link to="/" class="text-success text-decoration-none">FoodSaver</router-link>
+            <router-link to="/" class="text-success text-decoration-none">
+              <i class="bi bi-leaf-fill text-success fs-3 me-2"></i>
+              
+            </router-link>
           </h2>
           <div class="d-flex gap-2">
             <router-link
