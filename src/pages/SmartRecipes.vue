@@ -852,7 +852,7 @@ async function openDeductModal(recipe) {
         amount: recipeIngredient.amount || 0,
         unit: recipeIngredient.unit || '',
         pantryQuantity: pantryInfo.quantity,
-        pantryUnit: pantryInfo.unit || recipeIngredient.unit || '',
+        pantryUnit: pantryInfo.unit || '',
         selected: hasStock,
         deductAmount: recipeIngredient.amount || 0,
         deductUnit: recipeIngredient.unit || '',
