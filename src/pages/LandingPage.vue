@@ -512,7 +512,7 @@ const fetchRecipes = async () => {
     
     // Build params object
     const params = {
-      number: 5,
+      number: 1,
       apiKey: API_KEY
     }
     

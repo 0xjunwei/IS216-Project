@@ -140,7 +140,8 @@ const allNavItems = [
   { id: "pantry", label: "Pantry", icon: "bi bi-cart", path: "/pantry", requiresAuth: true },
   { id: "recipes", label: "Recipes", icon: "bi bi-egg-fried", path: "/recipe", requiresAuth: false },
   { id: "planner", label: "Planner", icon: "bi bi-calendar", path: "/planner", requiresAuth: true },
-  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard", requiresAuth: true }
+  { id: "dashboard", label: "Dashboard", icon: "bi bi-graph-up", path: "/dashboard", requiresAuth: true },
+  { id: "shopping", label: "Shop", icon: "bi bi-shop", path: "/shopping", requiresAuth: false }
 ];
 
 // Filter navigation based on login status

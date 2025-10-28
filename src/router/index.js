@@ -5,6 +5,7 @@ import SmartRecipes from "../pages/SmartRecipes.vue";
 import Pantry from "../pages/Pantry.vue";
 import MealPlanner from "../pages/MealPlanner.vue";
 import Dashboard from "../pages/Dashboard.vue";
+import ShoppingPage from "../pages/ShoppingPage.vue";
 
 const routes = [
   { path: "/", name: "Landing", component: LandingPage },
@@ -13,6 +14,7 @@ const routes = [
   { path: "/recipe", name: "SmartRecipes", component: SmartRecipes },
   { path: "/planner", name: "MealPlanner", component: MealPlanner },
   { path: "/dashboard", name: "Dashboard", component: Dashboard },
+  { path: "/shopping", name: "Shopping", component: ShoppingPage },
 ];
 
 const router = createRouter({
