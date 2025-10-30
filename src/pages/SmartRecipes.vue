@@ -21,7 +21,7 @@
                 @click="retrievePantry"
                 class="btn btn-success btn-sm mt-2 mt-md-0 flex-fill"
               >
-                <i class="bi bi-cart me-2"></i>
+                <i class="bi bi-cart me-2 text-white"></i>
                 Import from Pantry
               </button>
               <button 
@@ -29,7 +29,7 @@
                   @click="openWalletModal"
                   class="btn btn-outline-primary btn-sm mt-2 mt-md-0 flex-fill"
                 >
-                  <i class="bi bi-wallet2 me-2"></i>
+                  <i class="bi bi-wallet2 me-2 text-primary"></i>
                   Manage Wallet
                 </button>
                 </div>
@@ -72,8 +72,8 @@
                 @click="openExpiryModal(ingredient)"
                 :title="ingredient.expiry ? (isExpired(ingredient) ? `Expired: ${ingredient.expiry}` : `Expires: ${ingredient.expiry}`) : 'Click to set expiry date'"
               >
-                <i v-if="isExpired(ingredient)" class="bi bi-x-circle me-1"></i>
-                <i v-else-if="isExpiringSoon(ingredient)" class="bi bi-clock-history me-1"></i>
+                <i v-if="isExpired(ingredient)" class="bi bi-x-circle me-1 text-danger"></i>
+                <i v-else-if="isExpiringSoon(ingredient)" class="bi bi-clock-history me-1 text-warning"></i>
                 {{ ingredient.name }}
                 <button 
                   class="btn-remove"
@@ -206,7 +206,7 @@
         <div class="card shadow-sm">
           <div class="card-body p-4">
             <div class="text-center mb-4">
-              <i class="bi bi-egg-fried text-muted mb-3" style="font-size: 4rem;"></i>
+              <i class="bi bi-egg-fried text-warning mb-3" style="font-size: 4rem;"></i>
               <h2 class="h5 fw-semibold mb-2">Ready to Find Recipes?</h2>
               <p class="text-muted mb-0">
                 Select ingredients from your pantry or add custom ingredients, then click 'Find Recipes' to discover delicious meals you can make.
@@ -218,14 +218,14 @@
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="zeroWasteOnly" v-model="zeroWasteOnly">
                 <label class="form-check-label" for="zeroWasteOnly">
-                  <i class="bi bi-recycle me-1"></i>
+                  <i class="bi bi-recycle me-1 text-success"></i>
                   Zero-waste only
                 </label>
                   </div>
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="prioritizeExpiring" v-model="prioritizeExpiring">
                 <label class="form-check-label" for="prioritizeExpiring">
-                  <i class="bi bi-clock-history me-1"></i>
+                  <i class="bi bi-clock-history me-1 text-warning"></i>
                   Prioritize expiring soon
                 </label>
                 </div>
