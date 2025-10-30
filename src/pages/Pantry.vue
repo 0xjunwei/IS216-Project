@@ -47,13 +47,9 @@ export default {
         });
     },
 
-    // MODIFICATION: Added mounted() hook
     mounted() {
-        // Get the modal element by its ID
         const modalEl = document.getElementById('addItemModal');
         if (modalEl) {
-            // Add an event listener that fires when the modal is completely hidden
-            // This catches backdrop clicks, Esc key presses, and button dismissals
             modalEl.addEventListener('hidden.bs.modal', () => {
                 this.resetForm();
             });
@@ -62,15 +58,12 @@ export default {
 
     beforeUnmount() {
         if (this.unsubscribe) this.unsubscribe();
-        // Note: In a complex app, you might also remove the 'hidden.bs.modal'
-        // listener here, but for this component it's generally safe.
     },
     components: {
         StreamBarcodeReader,
         ImageBarcodeReader
     },
     computed: {
-        // --- Computed properties for filtering pantry items ---
         meats() {
             return this.pantry.filter(item => item.category === 'Meat');
         },
@@ -83,8 +76,6 @@ export default {
         others() {
             return this.pantry.filter(item => item.category === 'Others');
         },
-
-        // --- Computed properties for the dashboard cards ---
         totalItems() {
             return this.pantry.length;
         },
@@ -98,7 +89,6 @@ export default {
             return this.pantry.filter(item => item.freshness === 'Expired').length;
         },
 
-        // --- Computed property for a nicely formatted date ---
         formattedToday() {
             return this.today.toLocaleDateString(undefined, {
                 weekday: 'long',
@@ -146,7 +136,6 @@ export default {
         },
 
         async createItem() {
-            // Validate required fields
             if (!this.newItemName.trim() || !this.itemExpiry || !this.category || !this.quantity || !this.unit) {
                 this.error = "Please fill in all required fields.";
                 return;
@@ -187,7 +176,6 @@ export default {
             this.decodedText = '';
             this.quantity = null;
             this.unit = '';
-            // This is the line that stops the camera
             this.openCamera = false;
         },
 
@@ -217,19 +205,28 @@ export default {
             console.log('Camera ready');
         },
 
-        // Open modal to edit expiry for a clicked item
         openEditExpiry(item) {
             this.itemBeingEdited = item;
             this.editExpiryDate = item?.expiry || '';
-            // Rely on data-bs-toggle to show the modal, avoid requiring window.bootstrap
         },
 
-        // Save updated expiry and freshness, persist to Firestore
         async updateExpiry() {
             if (!this.itemBeingEdited || !this.editExpiryDate) return;
             this.itemBeingEdited.expiry = this.editExpiryDate;
             this.itemBeingEdited.freshness = this.checkFreshness(this.editExpiryDate);
             await this.savePantry();
+            const modalEl = document.getElementById('editExpiryModal');
+            if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+            }
+            this.itemBeingEdited = null;
+            this.editExpiryDate = '';
+        },
+
+        async deleteCurrentItem() {
+            if (!this.itemBeingEdited) return;
+            await this.removeItem(this.itemBeingEdited);
             const modalEl = document.getElementById('editExpiryModal');
             if (modalEl && window.bootstrap && window.bootstrap.Modal) {
                 const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -243,16 +240,16 @@ export default {
 </script>
 
 <template>
-<div class="page-container bg-light">
+<div class="min-vh-100 bg-light pt-5 pb-4">
     
-    <div class="container-xl py-4 mb-3">
+    <div class="container-xl py-3 mb-2">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="mb-0">Your Pantry</h1>
-                <p class="text-muted mb-0">Today is {{ formattedToday }}</p>
+                <h2 class="mb-1">Pantry</h2>
+                <p class="text-muted mb-0">{{ formattedToday }}</p>
             </div>
-            <button class="btn btn-success btn-lg d-flex align-items-center shadow-sm" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                <i class="bi bi-plus-lg me-2"></i> Add Item
+            <button class="btn btn-success d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                <i class="bi bi-plus-lg me-2"></i> Add item
             </button>
         </div>
     </div>
@@ -260,39 +257,39 @@ export default {
     <div class="container-xl mb-4">
         <div class="row gy-4">
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="bg-white h-100 p-4 rounded-4 shadow-sm">
-                    <div class="d-flex align-items-center text-primary mb-3">
-                        <i class="bi bi-box-seam-fill fs-3 me-3"></i>
-                        <span class="fw-semibold">Total Items</span>
+                <div class="bg-white h-100 p-3 rounded-4 border">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-box-seam me-2 text-muted"></i>
+                        <span class="text-muted">Total items</span>
                     </div>
-                    <div class="fw-bold display-4 mb-0">{{ totalItems }}</div>
+                    <div class="fw-semibold fs-2 mb-0">{{ totalItems }}</div>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="bg-white h-100 p-4 rounded-4 shadow-sm">
-                    <div class="d-flex align-items-center text-success mb-3">
-                        <i class="bi bi-check-circle-fill fs-3 me-3"></i>
-                        <span class="fw-semibold">Fresh Items</span>
+                <div class="bg-white h-100 p-3 rounded-4 border">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle me-2 text-success"></i>
+                        <span class="text-muted">Fresh</span>
                     </div>
-                    <div class="fw-bold display-4 mb-0">{{ freshItems }}</div>
+                    <div class="fw-semibold fs-2 mb-0">{{ freshItems }}</div>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="bg-white h-100 p-4 rounded-4 shadow-sm">
-                    <div class="d-flex align-items-center text-warning mb-3">
-                        <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
-                        <span class="fw-semibold">Expiring Soon</span>
+                <div class="bg-white h-100 p-3 rounded-4 border">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-clock-history me-2 text-warning"></i>
+                        <span class="text-muted">Expiring soon</span>
                     </div>
-                    <div class="fw-bold display-4 mb-0">{{ expiringItems }}</div>
+                    <div class="fw-semibold fs-2 mb-0">{{ expiringItems }}</div>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-                <div class="bg-white h-100 p-4 rounded-4 shadow-sm">
-                    <div class="d-flex align-items-center text-danger mb-3">
-                        <i class="bi bi-x-octagon-fill fs-3 me-3"></i>
-                        <span class="fw-semibold">Expired</span>
+                <div class="bg-white h-100 p-3 rounded-4 border">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-x-octagon me-2 text-danger"></i>
+                        <span class="text-muted">Expired</span>
                     </div>
-                    <div class="fw-bold display-4 mb-0">{{ expiredItems }}</div>
+                    <div class="fw-semibold fs-2 mb-0">{{ expiredItems }}</div>
                 </div>
             </div>
         </div>
@@ -300,20 +297,20 @@ export default {
 
 
     <div class="container-xl">
-        <h2 class="text-center mb-4">Pantry Items</h2>
+        <h3 class="text-center mb-3">Items</h3>
         <div class="row g-4">
             
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="card rounded-4 shadow-sm h-100 border-0">
-                    <div class="card-header bg-white border-0 text-center fw-semibold fs-5 p-3">
-                        <i class="bi bi-box2-heart text-danger fs-2 mb-1"></i><br>Meats
+                    <div class="card-header bg-white border-0 text-center fw-semibold p-3">
+                        <i class="bi bi-box2-heart text-muted me-1"></i> Meats
                     </div>
                     <div class="card-body pt-0">
                         <div v-if="meats.length > 0">
-                            <div class="pantry-item" v-for="(item, index) in meats" :key="'meat-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal">
+                            <div class="d-flex justify-content-between align-items-start py-3 border-bottom cursor-pointer position-relative item-row" v-for="(item, index) in meats" :key="'meat-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Click to edit expiry">
                                 <div>
-                                    <div class="fw-semibold">{{ item.name }}</div>
-                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} &bull; Exp: {{ item.expiry }}</div>
+                                    <a href="#" class="text-reset fw-semibold text-decoration-none clickable-name stretched-link" @click.prevent.stop="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Edit expiry">{{ item.name }}</a>
+                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} Expiry: {{ item.expiry }}</div>
                                     <div v-if="item.barcode" class="text-muted small fst-italic">Barcode: {{ item.barcode }}</div>
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-2">
@@ -324,9 +321,6 @@ export default {
                                     }">
                                         {{ item.freshness }}
                                     </span>
-                                    <button class="btn btn-sm btn-outline-danger border-0" @click.stop="removeItem(item)" title="Remove">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -337,15 +331,15 @@ export default {
 
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="card rounded-4 shadow-sm h-100 border-0">
-                    <div class="card-header bg-white border-0 text-center fw-semibold fs-5 p-3">
-                        <i class="bi bi-apple text-success fs-2 mb-1"></i><br>Fruits & Vegetables
+                    <div class="card-header bg-white border-0 text-center fw-semibold p-3">
+                        <i class="bi bi-apple text-muted me-1"></i> Fruits & Vegetables
                     </div>
                     <div class="card-body pt-0">
                         <div v-if="fruitsVegetables.length > 0">
-                            <div class="pantry-item" v-for="(item, index) in fruitsVegetables" :key="'fruit-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal">
+                            <div class="d-flex justify-content-between align-items-start py-3 border-bottom cursor-pointer position-relative item-row" v-for="(item, index) in fruitsVegetables" :key="'fruit-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Click to edit expiry">
                                 <div>
-                                    <div class="fw-semibold">{{ item.name }}</div>
-                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} &bull; Exp: {{ item.expiry }}</div>
+                                    <a href="#" class="text-reset fw-semibold text-decoration-none clickable-name stretched-link" @click.prevent.stop="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Edit expiry">{{ item.name }}</a>
+                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} Expiry: {{ item.expiry }}</div>
                                     <div v-if="item.barcode" class="text-muted small fst-italic">Barcode: {{ item.barcode }}</div>
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-2">
@@ -356,9 +350,6 @@ export default {
                                     }">
                                         {{ item.freshness }}
                                     </span>
-                                    <button class="btn btn-sm btn-outline-danger border-0" @click.stop="removeItem(item)" title="Remove">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -369,15 +360,15 @@ export default {
 
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="card rounded-4 shadow-sm h-100 border-0">
-                    <div class="card-header bg-white border-0 text-center fw-semibold fs-5 p-3">
-                        <i class="bi bi-cup-straw text-info fs-2 mb-1"></i><br>Dairy & Drinks
+                    <div class="card-header bg-white border-0 text-center fw-semibold p-3">
+                        <i class="bi bi-cup-straw text-muted me-1"></i> Dairy & Drinks
                     </div>
                     <div class="card-body pt-0">
                         <div v-if="dairyDrinks.length > 0">
-                            <div class="pantry-item" v-for="(item, index) in dairyDrinks" :key="'dairy-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal">
+                            <div class="d-flex justify-content-between align-items-start py-3 border-bottom cursor-pointer position-relative item-row" v-for="(item, index) in dairyDrinks" :key="'dairy-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Click to edit expiry">
                                 <div>
-                                    <div class="fw-semibold">{{ item.name }}</div>
-                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} &bull; Exp: {{ item.expiry }}</div>
+                                    <a href="#" class="text-reset fw-semibold text-decoration-none clickable-name stretched-link" @click.prevent.stop="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Edit expiry">{{ item.name }}</a>
+                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} Expiry: {{ item.expiry }}</div>
                                     <div v-if="item.barcode" class="text-muted small fst-italic">Barcode: {{ item.barcode }}</div>
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-2">
@@ -388,9 +379,6 @@ export default {
                                     }">
                                         {{ item.freshness }}
                                     </span>
-                                    <button class="btn btn-sm btn-outline-danger border-0" @click.stop="removeItem(item)" title="Remove">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -401,15 +389,15 @@ export default {
 
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="card rounded-4 shadow-sm h-100 border-0">
-                    <div class="card-header bg-white border-0 text-center fw-semibold fs-5 p-3">
-                        <i class="bi bi-basket text-secondary fs-2 mb-1"></i><br>Others
+                    <div class="card-header bg-white border-0 text-center fw-semibold p-3">
+                        <i class="bi bi-basket text-muted me-1"></i> Others
                     </div>
                     <div class="card-body pt-0">
                         <div v-if="others.length > 0">
-                            <div class="pantry-item" v-for="(item, index) in others" :key="'other-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal">
+                            <div class="d-flex justify-content-between align-items-start py-3 border-bottom cursor-pointer position-relative item-row" v-for="(item, index) in others" :key="'other-' + index" @click="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Click to edit expiry">
                                 <div>
-                                    <div class="fw-semibold">{{ item.name }}</div>
-                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} &bull; Exp: {{ item.expiry }}</div>
+                                    <a href="#" class="text-reset fw-semibold text-decoration-none clickable-name stretched-link" @click.prevent.stop="openEditExpiry(item)" data-bs-toggle="modal" data-bs-target="#editExpiryModal" title="Edit expiry">{{ item.name }}</a>
+                                    <div class="text-muted small">{{ item.quantity }} {{ item.unit }} Expiry: {{ item.expiry }}</div>
                                     <div v-if="item.barcode" class="text-muted small fst-italic">Barcode: {{ item.barcode }}</div>
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-2">
@@ -420,9 +408,6 @@ export default {
                                     }">
                                         {{ item.freshness }}
                                     </span>
-                                    <button class="btn btn-sm btn-outline-danger border-0" @click.stop="removeItem(item)" title="Remove">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -476,7 +461,7 @@ export default {
                                 </button>
                             </div>
                             
-                            <div v-if="openCamera" class="camera-stream-wrapper">
+                            <div v-if="openCamera" class="border rounded p-2 bg-light">
                                 <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
                                 <small class="text-muted d-block text-center mt-1">Point camera at barcode</small>
 
@@ -513,9 +498,12 @@ export default {
                         <label class="form-label fw-semibold">New expiry date</label>
                         <input type="date" class="form-control" v-model="editExpiryDate">
                     </div>
-                    <div class="text-end">
-                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" :disabled="!editExpiryDate" @click="updateExpiry">Save</button>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-outline-danger" @click="deleteCurrentItem" data-bs-dismiss="modal">Delete item</button>
+                        <div>
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" :disabled="!editExpiryDate" @click="updateExpiry">Save</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -525,41 +513,6 @@ export default {
 </template>
 
 <style scoped>
-.page-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding-top: 72px; /* Adjust if your navbar is a different height */
-    padding-bottom: 4rem; 
-}
-
-.pantry-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 1rem 0.5rem;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-}
-
-.pantry-item:last-child {
-    border-bottom: none;
-}
-
-.camera-stream-wrapper {
-    margin-top: 0.5rem;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem; 
-    padding: 0.5rem;          
-    overflow: hidden;          
-    position: relative;
-    background: #f8f9fa;       
-}
-
-.camera-stream-wrapper :deep(video),
-.camera-stream-wrapper :deep(canvas) {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.25rem; 
-}
+.clickable-name:hover { text-decoration: underline; }
+.item-row:hover { background-color: #f8f9fa; }
 </style>
