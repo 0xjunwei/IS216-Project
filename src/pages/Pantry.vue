@@ -15,7 +15,12 @@ export default {
             loading: false,
             error: '',
             today: new Date(),
-            
+
+            //Added create multiple item part
+            createMultiple: false,
+            itemCount:2,
+            multipleItems: [],
+            tempIdCounter: 0,
             // Item details for the modal
             newItemName: '',
             quantity: null,
@@ -63,18 +68,47 @@ export default {
         StreamBarcodeReader,
         ImageBarcodeReader
     },
+    //To watch whenever create multiple is selected
+    watch: {
+        //Creates multiple version of the add item form
+        createMultiple(newValue) {
+            if (newValue) {
+                    this.multipleItems = []; //resets the array
+                    for (let i = 0; i < this.itemCount; i++) {
+                        this.multipleItems.push(this.createBlankItem());
+                    }
+            }
+        },
+        // Changes the no. of item field if there are changes
+        itemCount(newVal, oldVal) {
+                if (!this.createMultiple) return;
+
+                const diff = newVal - oldVal;
+                if (diff > 0) { //add more item form
+                    for (let i = 0; i < diff; i++) {
+                        this.multipleItems.push(this.createBlankItem());
+                    }
+                } else if (diff < 0) { // Remove items form
+                    this.multipleItems.splice(newVal); // remove based on the lower value
+                }
+            }
+    },
     computed: {
+    //Added a sorted pantry by date
+        sortedPantry() {
+            return [...this.pantry].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+        },
         meats() {
-            return this.pantry.filter(item => item.category === 'Meat');
+            return this.sortedPantry.filter(item => item.category === 'Meat');
         },
         fruitsVegetables() {
-            return this.pantry.filter(item => item.category === 'Fruits & Vegetable');
+            return this.sortedPantry.filter(item => item.category === 'Fruits & Vegetable');
         },
         dairyDrinks() {
-            return this.pantry.filter(item => item.category === 'Dairy & Drinks');
+            return this.sortedPantry.filter(item => item.category === 'Dairy & Drinks');
         },
         others() {
-            return this.pantry.filter(item => item.category === 'Others');
+            return this.sortedPantry.filter(item => item.category === 'Others');
         },
         totalItems() {
             return this.pantry.length;
@@ -96,8 +130,19 @@ export default {
                 month: 'long',
                 day: 'numeric'
             });
+        },
+        isFormInvalid() {
+            if (this.createMultiple) {
+                if (this.multipleItems.length === 0) return true; 
+                // Check if any items is not fulfilled
+                return this.multipleItems.some(item => 
+                    !item.name.trim() || !item.itemExpiry || !item.category || !item.quantity || !item.unit
+                );
+            } else {
+                return !this.newItemName.trim() || !this.itemExpiry || !this.category || !this.quantity || !this.unit;
+            }
         }
-    },
+        },
     methods: {
         async savePantry() {
             if (!this.user) return;
@@ -136,47 +181,97 @@ export default {
         },
 
         async createItem() {
-            if (!this.newItemName.trim() || !this.itemExpiry || !this.category || !this.quantity || !this.unit) {
-                this.error = "Please fill in all required fields.";
+            if (this.isFormInvalid) {
+                this.error = "Please fill in all required fields for all items.";
                 return;
             }
             
-            const freshness = this.checkFreshness(this.itemExpiry);
+            let itemsAdded = false;
+            this.error = ''; // Clear error
 
-            const newItem = {
-                name: this.newItemName.trim(),
-                expiry: this.itemExpiry,
-                category: this.category,
-                freshness: freshness,
-                barcode: this.decodedText || '',
-                quantity: this.quantity,
-                unit: this.unit,
-            };
+            if (this.createMultiple) {
+                // Loop through all items in the forms
+                for (const item of this.multipleItems) {
+                    // Validate each item again (double check JIC)
+                    if (!item.name.trim() || !item.itemExpiry || !item.category || !item.quantity || !item.unit) {
+                        continue; // Skip this invalid item
+                    }
 
-            this.pantry.push(newItem);
-            await this.savePantry();
+                    const freshness = this.checkFreshness(item.itemExpiry);
+                    const newItem = {
+                        name: item.name.trim(),
+                        expiry: item.itemExpiry,
+                        category: item.category,
+                        freshness: freshness,
+                        barcode: item.barcode || '',
+                        quantity: item.quantity,
+                        unit: item.unit,
+                    };
+                    this.pantry.push(newItem);
+                    itemsAdded = true;
+                }
+            } else {
+                const freshness = this.checkFreshness(this.itemExpiry);
+                const newItem = {
+                    name: this.newItemName.trim(),
+                    expiry: this.itemExpiry,
+                    category: this.category,
+                    freshness: freshness,
+                    barcode: this.decodedText || '',
+                    quantity: this.quantity,
+                    unit: this.unit,
+                };
+                this.pantry.push(newItem);
+                itemsAdded = true;
+            }
+
+            if (itemsAdded) {
+                await this.savePantry();
+            }
             this.resetForm();
         },
 
-        async removeItem(itemToRemove) {
-            const index = this.pantry.findIndex(item => 
-                item.name === itemToRemove.name && item.expiry === itemToRemove.expiry
-            );
-            
-            if (index > -1) {
-                this.pantry.splice(index, 1);
-                await this.savePantry(); 
-            }
-        },
+        createBlankItem() { //Creates the empty new forms
+            this.tempIdCounter++;
+
+                return {
+                    id: `temp-${this.tempIdCounter}`, // Have to force it into a string, dk y its bugs out
+                    name: '',
+                    quantity: null,
+                    unit: '',
+                    itemExpiry: '',
+                    category: '',
+                    barcode: '',
+                    openCamera: false
+                };
+            },
 
         resetForm() {
-            this.newItemName = '';
-            this.itemExpiry = '';
-            this.category = '';
-            this.decodedText = '';
-            this.quantity = null;
-            this.unit = '';
-            this.openCamera = false;
+                    // Reset single form fields
+                    this.newItemName = '';
+                    this.itemExpiry = '';
+                    this.category = '';
+                    this.decodedText = '';
+                    this.quantity = null;
+                    this.unit = '';
+                    this.openCamera = false;
+
+                    // Reset multiple form fields
+                    this.createMultiple = false;
+                    this.multipleItems = [];
+                    this.itemCount = 2;
+                    this.error = '';
+                    this.tempIdCounter = 0
+                },
+
+        addItemRow() {
+            this.multipleItems.push(this.createBlankItem());
+            this.itemCount++; //Sync with submit counter
+        },
+
+        removeItemRow(index) {
+            this.multipleItems.splice(index, 1);
+            this.itemCount--; //Sync with submit
         },
 
         checkFreshness(expiryDate) {
@@ -197,10 +292,17 @@ export default {
             }
         },
         
-        onDecode(result) {
-            this.decodedText = result;
-            this.openCamera = false; 
+        onDecode(result, index = null) {
+            if (this.createMultiple && index !== null) {
+                // If in multiple mode, update the specific item in the array
+                this.multipleItems[index].barcode = result;
+                this.multipleItems[index].openCamera = false;
+            } else if (!this.createMultiple) {
+                this.decodedText = result;
+                this.openCamera = false; 
+            }
         },
+
         onLoaded() {
             console.log('Camera ready');
         },
@@ -237,6 +339,7 @@ export default {
         }
     }
 }
+
 </script>
 
 <template>
@@ -417,63 +520,139 @@ export default {
             </div>
         </div>
     </div>
-
-    <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+<!-- Add New Item Popup -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content rounded-4 shadow border-0">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold fs-5" id="addItemModalLabel">
                         <i class="bi bi-plus-circle text-success me-2"></i>Add New Item
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="resetForm"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> <!-- resetForm is called by event listener -->
                 </div>
+                
                 <div class="modal-body p-4">
-                    <form id="pantryForm" class="row g-3" @submit.prevent="createItem">
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Item name</label>
-                            <input type="text" class="form-control" placeholder="e.g., Chicken breast" v-model="newItemName" required>
+                    <!-- Checkbox to toggle modes -->
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" v-model="createMultiple" id="checkAddMultiple">
+                        <label class="form-check-label" for="checkAddMultiple">
+                            Add Multiple Items
+                        </label>
+                    </div>
+                    <div v-if="createMultiple" class="col-12 mb-3">
+                        <label for="itemCountInput" class="form-label fw-semibold">No. of items:</label>
+                        <input type="number" id="itemCountInput" class="form-control" v-model.number="itemCount" min="1">
+                    </div>
+                    <!-- Error message display -->
+                    <div v-if="error" class="alert alert-danger p-2 small">{{ error }}</div>
+
+                    <!-- Main Form Container -->
+                    <form id="pantryForm" @submit.prevent="createItem">
+                        
+                        <!-- Single Item Form -->
+                        <div v-if="!createMultiple" class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Item name</label>
+                                <input type="text" class="form-control" placeholder="e.g., Chicken breast" v-model="newItemName" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Quantity</label>
+                                <input type="number" class="form-control" placeholder="e.g., 2" v-model.number="quantity" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Unit</label>
+                                <input type="text" class="form-control" placeholder="e.g., pcs, L" v-model="unit" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Category</label>
+                                <select class="form-select" v-model="category" required>
+                                    <option value="" disabled>Select a category</option>
+                                    <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Expiry date</label>
+                                <input type="date" class="form-control" v-model="itemExpiry" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-secondary">Scan or type barcode (optional)</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Barcode" v-model="decodedText">
+                                    <button type="button" class="btn btn-outline-success" @click="openCamera = !openCamera">
+                                        <i class="bi bi-upc-scan me-1"></i>{{ openCamera ? 'Close' : 'Scan' }}
+                                    </button>
+                                </div>
+                                <div v-if="openCamera" class="border rounded p-2 bg-light mt-2">
+                                    <StreamBarcodeReader @decode="onDecode($event, null)" @loaded="onLoaded"/>
+                                    <small class="text-muted d-block text-center mt-1">Point camera at barcode</small>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Quantity</label>
-                            <input type="number" class="form-control" placeholder="e.g., 2" v-model.number="quantity" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Unit</label>
-                            <input type="text" class="form-control" placeholder="e.g., pcs, L" v-model="unit" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Category</label>
-                            <select class="form-select" v-model="category" required>
-                                <option value="" disabled>Select a category</option>
-                                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Expiry date</label>
-                            <input type="date" class="form-control" v-model="itemExpiry" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small text-secondary">Scan or type barcode (optional)</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Barcode" v-model="decodedText">
-                                <button type="button" class="btn btn-outline-success" @click="openCamera = !openCamera">
-                                    <i class="bi bi-upc-scan me-1"></i>{{ openCamera ? 'Close' : 'Scan' }}
-                                </button>
+
+                        <!-- Multiple Item form -->
+                        <div v-else>
+                            <!-- Scrollable container-->
+                            <div class="multi-item-container" style="max-height: 50vh; overflow-y: auto; padding-right: 10px;">
+                                <div v-for="(item, index) in multipleItems" :key="item.id" class="row g-3 p-3 mb-3 border rounded-3 bg-light position-relative">
+                                    
+                                    <!-- Remove Row Button -->
+                                    <button type="button" class="btn-close position-absolute" @click="removeItemRow(index)" aria-label="Remove item" style="top: 10px; right: 10px; z-index: 10;" v-if="multipleItems.length > 1"></button>
+                                    <!-- Similar to Normal -->
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Item {{ index + 1 }}: Name</label>
+                                        <input type="text" class="form-control" placeholder="e.g., Chicken breast" v-model="item.name" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold">Quantity</label>
+                                        <input type="number" class="form-control" placeholder="e.g., 2" v-model.number="item.quantity" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold">Unit</label>
+                                        <input type="text" class="form-control" placeholder="e.g., pcs, L" v-model="item.unit" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Category</label>
+                                        <select class="form-select" v-model="item.category" required>
+                                            <option value="" disabled>Select a category</option>
+                                            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Expiry date</label>
+                                        <input type="date" class="form-control" v-model="item.itemExpiry" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small text-secondary">Scan or type barcode (optional)</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" placeholder="Barcode" v-model="item.barcode">
+                                            <button type="button" class="btn btn-outline-success" @click="item.openCamera = !item.openCamera">
+                                                <i class="bi bi-upc-scan me-1"></i>{{ item.openCamera ? 'Close' : 'Scan' }}
+                                            </button>
+                                        </div>
+                                        <div v-if="item.openCamera" class="border rounded p-2 bg-white mt-2">
+                                            <StreamBarcodeReader @decode="onDecode($event, index)" @loaded="onLoaded"/>
+                                            <small class="text-muted d-block text-center mt-1">Point camera at barcode</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div v-if="openCamera" class="border rounded p-2 bg-light">
-                                <StreamBarcodeReader @decode="onDecode" @loaded="onLoaded"/>
-                                <small class="text-muted d-block text-center mt-1">Point camera at barcode</small>
-
+                            <!-- Add Another Item Button -->
+                            <div class="col-12 pt-3">
+                                <button type="button" class="btn btn-outline-primary w-100" @click="addItemRow">
+                                    <i class="bi bi-plus-lg me-1"></i> Add Another Item
+                                </button>
                             </div>
                         </div>
-                        <div class="col-12 pt-2">
+
+                        <!-- Submit Button -->
+                        <div class="col-12 pt-4">
                             <button type="submit" class="btn btn-success btn-lg w-100" 
-                                    :data-bs-dismiss="(!newItemName || !category || !itemExpiry || !unit || !quantity) ? '' : 'modal'"
-                                    :disabled="!newItemName || !category || !itemExpiry || !unit || !quantity">
-                                Add Item to Pantry
+                                    :data-bs-dismiss="isFormInvalid ? '' : 'modal'"
+                                    :disabled="isFormInvalid">
+                                {{ createMultiple ? `Add ${multipleItems.length} Item(s)` : 'Add Item to Pantry' }}
                             </button>
-                            <div v-if="!newItemName || !category || !itemExpiry || !unit || !quantity" class="mt-2 text-center">
+                            <div v-if="isFormInvalid" class="mt-2 text-center">
                                 <small class="text-danger">Please fill in all required fields.</small>
                             </div>
                         </div>
