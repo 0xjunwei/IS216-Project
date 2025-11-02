@@ -121,6 +121,15 @@
     <main class="flex-grow-1 pb-5 pb-md-0" style="padding-top: 72px;">
       <router-view />
     </main>
+    
+    <!-- footer -->
+    <footer class="bg-white border-top py-3 mt-auto">
+      <div class="container-fluid">
+        <p class="text-center text-muted small">
+          &copy; 2025 FoodSaver. All rights reserved.
+        </p>
+      </div>
+    </footer>
   </div>
 </template>
 
