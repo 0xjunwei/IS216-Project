@@ -20,17 +20,29 @@
 
               <!-- Week Navigation -->
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <button class="btn btn-glass btn-sm week-nav-btn" @click="previousWeek">
+                <button class="btn btn-glass btn-sm week-nav-btn" @click="handlePreviousNavigation">
                   ◀
                 </button>
-                <h6 class="mb-0">{{ currentWeekRange }}</h6>
-                <button class="btn btn-glass btn-sm week-nav-btn" @click="nextWeek">
+                <h6 class="mb-0">
+                  <button 
+                    class="btn-date-display" 
+                    @click="openCalendarPicker"
+                    :title="'Click to select a date'"
+                  >
+                    <span v-if="isMobile() && weekDays.length > 0">
+                      {{ weekDays[currentDayIndex]?.name }} - {{ weekDays[currentDayIndex]?.date }}
+                    </span>
+                    <span v-else>{{ currentWeekRange }}</span>
+                    <i class="bi bi-calendar-event ms-2"></i>
+                  </button>
+                </h6>
+                <button class="btn btn-glass btn-sm week-nav-btn" @click="handleNextNavigation">
                   ▶
                 </button>
               </div>
 
               <!-- Weekly Calendar Grid -->
-              <div class="weekly-grid">
+              <div class="weekly-grid" ref="weeklyGridRef">
                 <div v-for="day in weekDays" :key="day.date" class="day-column">
                   <div class="meal-day-card h-100" :class="{ 'today': day.isToday }">
                     <div class="day-header">
@@ -44,9 +56,13 @@
                         v-for="mealType in mealTypes" 
                         :key="mealType"
                         class="meal-slot"
+                        :data-date="day.date"
+                        :data-meal-type="mealType"
                         @drop="dropMeal($event, day.date, mealType)"
                         @dragover.prevent
                         @dragenter.prevent
+                        @touchmove="touchMove($event)"
+                        @touchend="touchEnd"
                       >
                         <div class="meal-type-label">{{ mealType }}</div>
                         <div v-if="getMealsForSlot(day.date, mealType).length > 0" class="meal-items-container">
@@ -56,6 +72,9 @@
                             class="meal-item"
                             draggable="true"
                             @dragstart="dragMeal($event, day.date, mealType, index)"
+                            @touchstart="touchStart($event, { type: 'move', fromDate: day.date, fromMealType: mealType, fromIndex: index, meal })"
+                            @touchmove.prevent
+                            @touchend="touchEnd"
                           >
                             <div class="meal-title">{{ meal.title }}</div>
                             <button class="btn-remove-meal" @click="removeMeal(day.date, mealType, index)">
@@ -89,6 +108,9 @@
                   class="meal-card"
                   draggable="true"
                   @dragstart="dragMealFromLibrary($event, meal)"
+                  @touchstart="touchStart($event, { type: 'from-library', meal })"
+                  @touchmove.prevent
+                  @touchend="touchEnd"
                 >
                   <div class="meal-image">
                     <img :src="meal.image" :alt="meal.title" />
@@ -169,6 +191,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Calendar Picker Modal -->
+    <div 
+      class="modal fade" 
+      :class="{ 'show': showCalendarModal }" 
+      :style="{ display: showCalendarModal ? 'block' : 'none' }"
+      tabindex="-1" 
+      @click.self="closeCalendarPicker"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 shadow border-0">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold fs-5">
+              <i class="bi bi-calendar-event text-primary me-2"></i>Select Date
+            </h5>
+            <button type="button" class="btn-close" @click="closeCalendarPicker" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Month/Year Navigation -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <button class="btn btn-outline-secondary btn-sm" @click="previousMonth">
+                ◀
+              </button>
+              <h6 class="mb-0 fw-bold">
+                {{ calendarMonthName }} {{ calendarYear }}
+              </h6>
+              <button class="btn btn-outline-secondary btn-sm" @click="nextMonth">
+                ▶
+              </button>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="calendar-grid">
+              <!-- Day Headers -->
+              <div class="calendar-weekdays">
+                <div v-for="day in weekDayHeaders" :key="day" class="calendar-weekday">
+                  {{ day }}
+                </div>
+              </div>
+
+              <!-- Calendar Days -->
+              <div class="calendar-days">
+                <div 
+                  v-for="(day, index) in calendarDays" 
+                  :key="index"
+                  class="calendar-day"
+                  :class="{
+                    'other-month': !day.inCurrentMonth,
+                    'today': day.isToday,
+                    'selected': day.isSelected
+                  }"
+                  @click="selectDate(day.date)"
+                >
+                  {{ day.day }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="showCalendarModal" class="modal-backdrop fade show" @click="closeCalendarPicker"></div>
   </div>
 </template>
 
@@ -183,6 +267,24 @@ const currentWeekStart = ref(new Date());
 const plannedMeals = ref({});
 const shoppingList = ref([]);
 const sustainableAlternatives = ref([]);
+
+// Calendar picker state
+const showCalendarModal = ref(false);
+const calendarMonth = ref(new Date().getMonth());
+const calendarYear = ref(new Date().getFullYear());
+
+// Template refs
+const weeklyGridRef = ref(null);
+
+// Touch drag state
+const touchDragState = ref({
+  active: false,
+  data: null,
+  startX: 0,
+  startY: 0,
+  currentX: 0,
+  currentY: 0
+});
 
 // Auth state management
 const user = ref(auth.currentUser);
@@ -279,6 +381,57 @@ const hasAnyMeals = computed(() => {
   return Object.keys(plannedMeals.value).length > 0;
 });
 
+// Calendar picker computed properties
+const weekDayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const calendarMonthName = computed(() => {
+  const date = new Date(calendarYear.value, calendarMonth.value, 1);
+  return date.toLocaleDateString('en-US', { month: 'long' });
+});
+
+const calendarDays = computed(() => {
+  const days = [];
+  const firstDay = new Date(calendarYear.value, calendarMonth.value, 1);
+  const lastDay = new Date(calendarYear.value, calendarMonth.value + 1, 0);
+  const startDate = new Date(firstDay);
+  
+  // Start from Sunday of the week containing the first day
+  const dayOfWeek = firstDay.getDay();
+  startDate.setDate(startDate.getDate() - dayOfWeek);
+  
+  // Get today's date for comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Get current displayed date for selection highlight
+  const currentDate = isMobile() && weekDays.value.length > 0 
+    ? new Date(weekDays.value[currentDayIndex.value]?.date)
+    : new Date(currentWeekStart.value);
+  
+  // Generate 42 days (6 weeks)
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const dateStr = date.toISOString().split('T')[0];
+    const dateForComparison = new Date(date);
+    dateForComparison.setHours(0, 0, 0, 0);
+    
+    const currentDateForComparison = new Date(currentDate);
+    currentDateForComparison.setHours(0, 0, 0, 0);
+    
+    days.push({
+      day: date.getDate(),
+      date: dateStr,
+      inCurrentMonth: date.getMonth() === calendarMonth.value,
+      isToday: dateForComparison.getTime() === today.getTime(),
+      isSelected: dateForComparison.getTime() === currentDateForComparison.getTime()
+    });
+  }
+  
+  return days;
+});
+
 // Helper functions
 function isToday(date) {
   const today = new Date();
@@ -311,7 +464,10 @@ function dragMeal(event, date, mealType, index) {
 function dropMeal(event, date, mealType) {
   event.preventDefault();
   const data = JSON.parse(event.dataTransfer.getData('text/plain'));
-  
+  handleDrop(data, date, mealType);
+}
+
+function handleDrop(data, date, mealType) {
   if (data.type === 'from-library') {
     // Add meal from library
     const key = `${date}-${mealType}`;
@@ -323,6 +479,11 @@ function dropMeal(event, date, mealType) {
     // Move existing meal
     const fromKey = `${data.fromDate}-${data.fromMealType}`;
     const toKey = `${date}-${mealType}`;
+    
+    // Don't move if it's the same slot
+    if (fromKey === toKey && data.fromIndex === undefined) {
+      return;
+    }
     
     // Remove from old location
     if (plannedMeals.value[fromKey]) {
@@ -340,6 +501,97 @@ function dropMeal(event, date, mealType) {
   }
   
   savePlannedMeals();
+}
+
+// Touch event handlers for mobile drag-and-drop
+function touchStart(event, data) {
+  if (!event.touches || event.touches.length === 0) return;
+  
+  const touch = event.touches[0];
+  touchDragState.value = {
+    active: true,
+    data: data,
+    startX: touch.clientX,
+    startY: touch.clientY,
+    currentX: touch.clientX,
+    currentY: touch.clientY
+  };
+  
+  // Add visual feedback
+  if (event.currentTarget) {
+    event.currentTarget.classList.add('touch-dragging');
+  }
+}
+
+function touchMove(event) {
+  if (!touchDragState.value.active || !event.touches || event.touches.length === 0) {
+    return;
+  }
+  
+  // Prevent default scrolling when actively dragging
+  event.preventDefault();
+  
+  const touch = event.touches[0];
+  touchDragState.value.currentX = touch.clientX;
+  touchDragState.value.currentY = touch.clientY;
+  
+  // Find element under touch point
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (elementBelow) {
+    // Find the meal-slot element
+    const mealSlot = elementBelow.closest('.meal-slot');
+    if (mealSlot) {
+      // Add visual feedback to drop target
+      document.querySelectorAll('.meal-slot').forEach(slot => {
+        slot.classList.remove('touch-drag-over');
+      });
+      mealSlot.classList.add('touch-drag-over');
+    }
+  }
+}
+
+function touchEnd(event) {
+  if (!touchDragState.value.active) return;
+  
+  // Remove visual feedback from dragging element
+  document.querySelectorAll('.meal-card, .meal-item').forEach(el => {
+    el.classList.remove('touch-dragging');
+  });
+  
+  // Find drop target using changedTouches
+  const changedTouches = event.changedTouches;
+  if (!changedTouches || changedTouches.length === 0) {
+    touchDragState.value.active = false;
+    touchDragState.value.data = null;
+    // Remove visual feedback
+    document.querySelectorAll('.meal-slot').forEach(slot => {
+      slot.classList.remove('touch-drag-over');
+    });
+    return;
+  }
+  
+  const touch = changedTouches[0];
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  
+  if (elementBelow && touchDragState.value.data) {
+    const mealSlot = elementBelow.closest('.meal-slot');
+    if (mealSlot) {
+      const date = mealSlot.getAttribute('data-date');
+      const mealType = mealSlot.getAttribute('data-meal-type');
+      
+      if (date && mealType) {
+        handleDrop(touchDragState.value.data, date, mealType);
+      }
+    }
+  }
+  
+  // Remove visual feedback
+  document.querySelectorAll('.meal-slot').forEach(slot => {
+    slot.classList.remove('touch-drag-over');
+  });
+  
+  touchDragState.value.active = false;
+  touchDragState.value.data = null;
 }
 
 function removeMeal(date, mealType, index) {
@@ -443,11 +695,15 @@ function exportShoppingList() {
   URL.revokeObjectURL(url);
 }
 
+// Current day index for mobile navigation
+const currentDayIndex = ref(0);
+
 function previousWeek() {
   const newDate = new Date(currentWeekStart.value);
   newDate.setDate(newDate.getDate() - 7);
   currentWeekStart.value = newDate;
   saveCurrentWeek();
+  scrollToStart();
 }
 
 function nextWeek() {
@@ -455,6 +711,155 @@ function nextWeek() {
   newDate.setDate(newDate.getDate() + 7);
   currentWeekStart.value = newDate;
   saveCurrentWeek();
+  scrollToStart();
+}
+
+function previousDay() {
+  if (currentDayIndex.value > 0) {
+    currentDayIndex.value--;
+    scrollToDay(currentDayIndex.value);
+  } else {
+    // Move to previous week and show last day
+    previousWeek();
+    setTimeout(() => {
+      currentDayIndex.value = weekDays.value.length - 1;
+      scrollToDay(currentDayIndex.value);
+    }, 100);
+  }
+}
+
+function nextDay() {
+  if (currentDayIndex.value < weekDays.value.length - 1) {
+    currentDayIndex.value++;
+    scrollToDay(currentDayIndex.value);
+  } else {
+    // Move to next week and show first day
+    nextWeek();
+    setTimeout(() => {
+      currentDayIndex.value = 0;
+      scrollToDay(currentDayIndex.value);
+    }, 100);
+  }
+}
+
+function scrollToDay(index) {
+  if (!weeklyGridRef.value) return;
+  
+  const dayColumns = weeklyGridRef.value.querySelectorAll('.day-column');
+  if (dayColumns && dayColumns[index]) {
+    const dayColumn = dayColumns[index];
+    const scrollPosition = dayColumn.offsetLeft - weeklyGridRef.value.offsetLeft;
+    
+    weeklyGridRef.value.scrollTo({
+      left: scrollPosition,
+      behavior: 'smooth'
+    });
+  }
+}
+
+function scrollToStart() {
+  // Scroll to the first day on mobile when navigating weeks
+  if (weeklyGridRef.value) {
+    setTimeout(() => {
+      weeklyGridRef.value?.scrollTo({
+        left: 0,
+        behavior: 'smooth'
+      });
+      currentDayIndex.value = 0;
+    }, 100);
+  }
+}
+
+// Check if mobile view (< 576px)
+function isMobile() {
+  return window.innerWidth <= 575;
+}
+
+// Handle navigation based on screen size
+function handlePreviousNavigation() {
+  if (isMobile()) {
+    previousDay();
+  } else {
+    previousWeek();
+  }
+}
+
+function handleNextNavigation() {
+  if (isMobile()) {
+    nextDay();
+  } else {
+    nextWeek();
+  }
+}
+
+// Calendar picker functions
+function openCalendarPicker() {
+  // Set calendar to show current date's month
+  const currentDate = isMobile() && weekDays.value.length > 0
+    ? new Date(weekDays.value[currentDayIndex.value]?.date)
+    : new Date(currentWeekStart.value);
+  
+  calendarMonth.value = currentDate.getMonth();
+  calendarYear.value = currentDate.getFullYear();
+  showCalendarModal.value = true;
+}
+
+function closeCalendarPicker() {
+  showCalendarModal.value = false;
+}
+
+function previousMonth() {
+  if (calendarMonth.value === 0) {
+    calendarMonth.value = 11;
+    calendarYear.value--;
+  } else {
+    calendarMonth.value--;
+  }
+}
+
+function nextMonth() {
+  if (calendarMonth.value === 11) {
+    calendarMonth.value = 0;
+    calendarYear.value++;
+  } else {
+    calendarMonth.value++;
+  }
+}
+
+function selectDate(selectedDateStr) {
+  const selectedDate = new Date(selectedDateStr);
+  
+  // Calculate Monday of the week containing the selected date
+  const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(selectedDate);
+  monday.setDate(selectedDate.getDate() + mondayOffset);
+  
+  // Update current week start
+  currentWeekStart.value = monday;
+  saveCurrentWeek();
+  
+  // Close modal
+  closeCalendarPicker();
+  
+  // If mobile, find and scroll to the selected day
+  if (isMobile()) {
+    setTimeout(() => {
+      // Find the index of the selected day in the week
+      const selectedDayIndex = weekDays.value.findIndex(day => day.date === selectedDateStr);
+      if (selectedDayIndex !== -1) {
+        currentDayIndex.value = selectedDayIndex;
+        scrollToDay(selectedDayIndex);
+      } else {
+        // If not found, scroll to start
+        scrollToStart();
+        currentDayIndex.value = 0;
+      }
+    }, 100);
+  } else {
+    // On desktop, scroll to start of week
+    scrollToStart();
+  }
 }
 
 // Local storage functions
@@ -578,6 +983,33 @@ async function syncWithFirestore() {
   alert('Data synced to cloud!');
 }
 
+// Track scroll position for day index
+function updateCurrentDayIndex() {
+  if (!weeklyGridRef.value || !isMobile()) return;
+  
+  const scrollLeft = weeklyGridRef.value.scrollLeft;
+  const dayColumns = weeklyGridRef.value.querySelectorAll('.day-column');
+  
+  if (dayColumns.length === 0) return;
+  
+  let closestIndex = 0;
+  let closestDistance = Infinity;
+  
+  dayColumns.forEach((column, index) => {
+    const columnLeft = column.offsetLeft;
+    const distance = Math.abs(scrollLeft - columnLeft);
+    
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+  
+  if (closestIndex !== currentDayIndex.value) {
+    currentDayIndex.value = closestIndex;
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   unsub = onAuthStateChanged(auth, (firebaseUser) => {
@@ -591,10 +1023,21 @@ onMounted(() => {
   loadPlannedMeals();
   loadShoppingList();
   loadCurrentWeek();
+  
+  // Track scroll position for mobile day navigation
+  setTimeout(() => {
+    if (weeklyGridRef.value) {
+      weeklyGridRef.value.addEventListener('scroll', updateCurrentDayIndex);
+      updateCurrentDayIndex(); // Initial update
+    }
+  }, 100);
 });
 
 onUnmounted(() => {
   if (unsub) unsub();
+  if (weeklyGridRef.value) {
+    weeklyGridRef.value.removeEventListener('scroll', updateCurrentDayIndex);
+  }
 });
 </script>
 
@@ -664,6 +1107,13 @@ onUnmounted(() => {
   padding: 0.5rem;
   transition: all 0.3s ease;
   font-weight: bold;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .week-nav-btn:hover {
@@ -671,15 +1121,46 @@ onUnmounted(() => {
   transform: scale(1.1);
 }
 
+.week-nav-btn:active {
+  transform: scale(0.95);
+}
+
 .weekly-grid {
   display: flex;
   gap: 0.5rem;
   width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #198754 #f8f9fa;
+}
+
+.weekly-grid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.weekly-grid::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+.weekly-grid::-webkit-scrollbar-thumb {
+  background: #198754;
+  border-radius: 3px;
+}
+
+.weekly-grid::-webkit-scrollbar-thumb:hover {
+  background: #157347;
 }
 
 .day-column {
   flex: 1;
   min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .meal-day-card {
@@ -692,6 +1173,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .meal-day-card.today {
@@ -953,7 +1435,180 @@ onUnmounted(() => {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+
+/* Mobile (≤575px) - Single date column, full width */
+@media (max-width: 575px) {
+  .day-column {
+    flex: 0 0 100%;
+    min-width: calc(100% - 0.5rem);
+    max-width: calc(100% - 0.5rem);
+  }
+  
+  .meal-day-card {
+    min-height: 500px;
+    padding: 0.75rem;
+  }
+  
+  .day-header {
+    height: 60px;
+    margin-bottom: 1rem;
+  }
+  
+  .day-header h6 {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .day-header small {
+    font-size: 0.85rem;
+  }
+  
+  .meal-slot {
+    height: 110px;
+    max-height: 110px;
+    padding: 0.75rem;
+    touch-action: pan-y;
+  }
+  
+  .meal-type-label {
+    font-size: 0.85rem;
+  }
+  
+  .meal-title {
+    font-size: 0.75rem;
+  }
+  
+  .meal-item {
+    min-height: 38px;
+    padding: 0.4rem;
+    touch-action: none;
+  }
+  
+  .meal-card {
+    flex-direction: column;
+    text-align: center;
+    touch-action: none;
+  }
+  
+  .meal-image {
+    width: 100%;
+    height: 80px;
+    margin: 0 auto;
+  }
+  
+  .week-nav-btn {
+    font-size: 1.75rem;
+    padding: 0.75rem;
+    min-width: 48px;
+    min-height: 48px;
+  }
+  
+  .weekly-grid {
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  /* Improve touch targets for mobile */
+  .btn-remove-meal {
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+  }
+  
+  .btn {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+  }
+  
+  /* Container adjustments */
+  .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .card {
+    border-radius: 10px;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  /* Shopping list mobile optimizations */
+  .shopping-item {
+    padding: 0.75rem 0;
+  }
+  
+  /* Available meals section */
+  .meal-library {
+    max-height: 350px;
+  }
+  
+  .meal-info .meal-title {
+    font-size: 0.85rem;
+  }
+  
+  /* Calendar mobile optimizations */
+  .calendar-day {
+    min-height: 36px;
+    font-size: 0.85rem;
+  }
+  
+  .calendar-weekday {
+    font-size: 0.8rem;
+    padding: 0.4rem 0;
+  }
+  
+  .btn-date-display {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn-date-display i {
+    font-size: 0.8rem;
+  }
+}
+
+/* Small tablets (576px-767px) - 2 days visible */
+@media (min-width: 576px) and (max-width: 767px) {
+  .day-column {
+    flex: 0 0 50%;
+    min-width: calc(50% - 0.375rem);
+    max-width: calc(50% - 0.375rem);
+  }
+  
+  .meal-day-card {
+    min-height: 550px;
+    padding: 0.875rem;
+  }
+  
+  .meal-slot {
+    height: 120px;
+    max-height: 120px;
+  }
+  
+  .weekly-grid {
+    gap: 0.5rem;
+  }
+}
+
+/* Medium tablets (768px-991px) - 4-5 days visible */
+@media (min-width: 768px) and (max-width: 991px) {
+  .day-column {
+    flex: 0 0 33.333%;
+    min-width: calc(33.333% - 0.4rem);
+    max-width: calc(33.333% - 0.4rem);
+  }
+  
+  .meal-day-card {
+    min-height: 575px;
+  }
+  
+  .meal-slot {
+    height: 125px;
+    max-height: 125px;
+  }
+  
   .meal-card {
     flex-direction: column;
     text-align: center;
@@ -965,22 +1620,37 @@ onUnmounted(() => {
     margin: 0 auto;
   }
   
-  .meal-slot {
-    height: 100px;
-    max-height: 100px;
-    padding: 0.75rem;
+  .weekly-grid {
+    gap: 0.4rem;
+  }
+}
+
+/* Large screens (992px+) - All 7 days visible (desktop layout) */
+@media (min-width: 992px) {
+  .day-column {
+    flex: 1;
+    min-width: 0;
   }
   
+  .weekly-grid {
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  
+  .day-column {
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+}
+
+/* Legacy mobile styles (768px and below) - kept for backward compatibility */
+@media (max-width: 768px) {
   .meal-title {
     font-size: 0.8rem;
   }
   
   .meal-type-label {
     font-size: 0.8rem;
-  }
-  
-  .weekly-grid {
-    gap: 0.2rem;
   }
 }
 
@@ -993,5 +1663,154 @@ onUnmounted(() => {
 .meal-item.dragging {
   opacity: 0.5;
   transform: rotate(5deg);
+}
+
+/* Date Display Button */
+.btn-date-display {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-date-display:hover {
+  background: #f8f9fa;
+  color: #0d6efd;
+}
+
+.btn-date-display:active {
+  transform: scale(0.95);
+}
+
+.btn-date-display i {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.btn-date-display:hover i {
+  opacity: 1;
+}
+
+/* Calendar Picker Modal Styles */
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #6c757d;
+  padding: 0.5rem 0;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #212529;
+  background: #f8f9fa;
+  min-height: 40px;
+  touch-action: manipulation;
+}
+
+.calendar-day:hover {
+  background: #e9ecef;
+  transform: scale(1.05);
+}
+
+.calendar-day.other-month {
+  color: #adb5bd;
+  background: transparent;
+}
+
+.calendar-day.today {
+  background: #0d6efd;
+  color: #fff;
+  font-weight: 700;
+}
+
+.calendar-day.selected {
+  background: #198754;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+}
+
+.calendar-day.today.selected {
+  background: #157347;
+  box-shadow: 0 2px 8px rgba(21, 115, 71, 0.4);
+}
+
+.calendar-day:active {
+  transform: scale(0.95);
+}
+
+/* Mobile drag and drop improvements */
+@media (max-width: 767px) {
+  .meal-item:active {
+    opacity: 0.7;
+  }
+  
+  .meal-card:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  
+  .meal-slot:active {
+    border-color: #198754;
+    background: #cfe2ff;
+  }
+  
+  /* Touch drag visual feedback */
+  .touch-dragging {
+    opacity: 0.6;
+    transform: scale(0.95);
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 1000;
+    position: relative;
+  }
+  
+  .touch-drag-over {
+    border-color: #198754 !important;
+    background: #d1e7dd !important;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+  }
+  
+  .meal-slot.touch-drag-over {
+    border-style: solid !important;
+    border-width: 2px !important;
+  }
 }
 </style>
