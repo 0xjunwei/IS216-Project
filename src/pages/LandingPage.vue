@@ -4,15 +4,14 @@
       <div class="row align-items-center">
         <div class="col-lg-6 mb-4 mb-lg-0">
           <div class="badge bg-success-subtle text-success px-3 py-2 rounded-pill mb-4">
-            Join {{ activeUserCount.toLocaleString() }}+ Sustainable Eaters
+            {{ activeUserCount.toLocaleString() }}+ Active Users
           </div>
-          <h1 class="display-2 fw-bold text-dark mb-4 lh-sm">
-            Plan Meals.<br />
-            <span class="text-success">Save Food.</span><br />
-            Help Planet.
+          <h1 class="display-2 fw-bold text-dark mb-4">
+            Plan Your Meals<br />
+            <span class="text-success">Reduce Food Waste</span>
           </h1>
           <p class="lead text-secondary mb-4">
-            Transform your kitchen into a zero-waste zone. Smart meal planning that reduces food waste by 40% while saving you money.
+            A simple app to help you plan meals and reduce food waste. Track what's in your pantry and get recipe suggestions.
           </p>
           <div class="d-flex flex-column flex-sm-row gap-3 mb-4">
             <button @click="goToLogin" class="btn btn-success btn-lg px-5 py-3 rounded-3 shadow-sm">
@@ -37,7 +36,7 @@
       <div class="container">
         <div class="row g-4 text-center">
           <div class="col-6 col-md-3" v-for="(stat, index) in stats" :key="index">
-            <div class="animate-number mb-2">
+            <div class="mb-2">
               <span class="display-4 fw-bold text-white">
                 {{ stat.animatedValue }}{{ stat.suffix }}
               </span>
@@ -52,16 +51,16 @@
     <section id="features" class="container py-5 py-lg-6">
       <div class="text-center mb-5">
         <h2 class="display-4 fw-bold text-dark mb-3">
-          Why Choose FoodSaver?
+          Features
         </h2>
         <p class="lead text-secondary max-width mx-auto">
-          Smart technology meets sustainable living. Everything you need to reduce waste and eat better.
+          What you can do with FoodSaver
         </p>
       </div>
 
       <div class="row g-4">
         <div class="col-12 col-md-4" v-for="(feature, index) in features" :key="index">
-          <div class="card h-100 border-0 shadow-sm hvr-lift">
+          <div class="card h-100 border-0 shadow-sm">
             <div class="card-body p-4 d-flex align-items-start gap-3">
               <div class="bg-success-subtle p-3 rounded-4 flex-shrink-0 feature-icon-container">
                 <i :class="feature.icon" class="text-success feature-icon"></i>
@@ -83,10 +82,10 @@
       <div class="container">
         <div class="text-center mb-5">
           <h2 class="display-4 fw-bold text-dark mb-3">
-            Sustainable Recipes
+            Recipes
           </h2>
           <p class="lead text-secondary mb-4">
-            Discover delicious recipes that are good for you and the planet
+            Browse recipes by category
           </p>
           
           <!-- Filter Buttons -->
@@ -238,7 +237,7 @@
           How It Works
         </h2>
         <p class="lead text-secondary">
-          Get started in three simple steps
+          How to use FoodSaver
         </p>
       </div>
 
@@ -260,10 +259,10 @@
       <div class="container">
         <div class="text-center mb-5">
           <h2 class="display-4 fw-bold text-dark mb-3">
-            What Our Users Say
+            User Reviews
           </h2>
           <p class="lead text-secondary">
-            Join thousands of happy users making a difference
+            What users think about FoodSaver
           </p>
         </div>
 
@@ -315,10 +314,12 @@ const activeUserCount = ref(0)
 
 // Recipes state
 const recipes = ref([])
+const cachedRecipes = ref([])
 const currentRecipeIndex = ref(0)
 const isLoadingRecipes = ref(true)
 const recipesError = ref(null)
 const activeFilter = ref('all')
+const recipesFetched = ref(false)
 
 // Recipe filters
 const recipeFilters = ref([
@@ -367,33 +368,33 @@ const stats = ref([
 const features = ref([
   {
     icon: 'bi bi-clipboard-check fs-3',
-    title: 'Smart Meal Planning',
-    description: 'Meal plans based on your preferences and what\'s already in your fridge.'
+    title: 'Meal Planning',
+    description: 'Plan your meals based on what you have in your pantry and fridge.'
   },
   {
     icon: 'bi bi-piggy-bank fs-3',
     title: 'Save Money',
-    description: 'Reduce grocery bills by up to 40% by using what you have and avoiding impulse purchases.'
+    description: 'Reduce food waste and save money by using ingredients you already have.'
   },
   {
     icon: 'bi bi-globe fs-3',
-    title: 'Help the Planet',
-    description: 'Track your carbon footprint and see the real environmental impact of reducing food waste.'
+    title: 'Reduce Waste',
+    description: 'Track your food items and get reminders before they expire.'
   },
   {
     icon: 'bi bi-book fs-3',
-    title: '15,000+ Recipes',
-    description: 'Access thousands of sustainable recipes with step-by-step instructions and nutritional info.'
+    title: 'Recipe Suggestions',
+    description: 'Get recipe ideas based on ingredients you have available.'
   },
   {
     icon: 'bi bi-cart fs-3',
-    title: 'Smart Shopping Lists',
-    description: 'Auto-generated shopping lists organized by store section. Never forget an ingredient again.'
+    title: 'Shopping Lists',
+    description: 'Create shopping lists for ingredients you need to buy.'
   },
   {
     icon: 'bi bi-clock-history fs-3',
     title: 'Expiry Tracking',
-    description: 'Smart suggestions to use ingredients before they go bad.'
+    description: 'Keep track of when your food items expire so nothing goes to waste.'
   }
 ])
 
@@ -402,49 +403,40 @@ const steps = ref([
   {
     number: 1,
     title: 'Add Your Ingredients',
-    description: 'Add what\'s in your fridge and pantry'
+    description: 'Add items from your fridge and pantry to track what you have'
   },
   {
     number: 2,
-    title: 'Get Smart Suggestions',
-    description: 'Recipes suggested based on what you have and what\'s expiring soon'
+    title: 'Get Recipe Suggestions',
+    description: 'Browse recipes based on ingredients you have available'
   },
   {
     number: 3,
-    title: 'Cook & Save',
-    description: 'Follow easy recipes, reduce waste, and track your environmental impact'
+    title: 'Plan Your Meals',
+    description: 'Plan your meals and create shopping lists for what you need'
   }
 ])
 
 let recipeInterval = null
 let testimonialInterval = null
 
-// Fetch active user count from Firebase
 const fetchActiveUserCount = async () => {
   try {
     const usersCollection = collection(db, 'users')
     const snapshot = await getDocs(usersCollection)
     const userCount = snapshot.size
     
-    // Update active user count for badge
     activeUserCount.value = userCount
-    
-    // Update the active users stat
     stats.value[0].targetValue = userCount
     stats.value[0].value = userCount
-    stats.value[0].animatedValue = 0 // Reset for animation
+    stats.value[0].animatedValue = 0
     
-    console.log(`Active users count: ${userCount}`)
-    
-    // Trigger animation for this stat
     animateStatsForIndex(0)
   } catch (error) {
     console.error('Error fetching user count:', error)
-    // Keep default value on error
   }
 }
 
-// Animate a specific stat by index
 const animateStatsForIndex = (index) => {
   const stat = stats.value[index]
   if (typeof stat.targetValue === 'number' && stat.targetValue > 0) {
@@ -459,7 +451,6 @@ const animateStatsForIndex = (index) => {
         clearInterval(interval)
       }
       
-      // Format the value
       if (stat.label === 'Active Users' || stat.label === 'Recipes') {
         stat.animatedValue = Math.floor(currentValue).toLocaleString()
       } else {
@@ -469,7 +460,6 @@ const animateStatsForIndex = (index) => {
   }
 }
 
-// Animate stats numbers
 const animateStats = () => {
   stats.value.forEach((stat) => {
     if (typeof stat.targetValue === 'number' && stat.targetValue > 0) {
@@ -484,7 +474,6 @@ const animateStats = () => {
           clearInterval(interval)
         }
         
-        // Format the value
         if (stat.label === 'Active Users' || stat.label === 'Recipes') {
           stat.animatedValue = Math.floor(currentValue).toLocaleString()
         } else {
@@ -495,176 +484,198 @@ const animateStats = () => {
   })
 }
 
-// Set active filter and fetch recipes
-const setActiveFilter = (filterValue) => {
-  activeFilter.value = filterValue
-  fetchRecipes()
+const getFallbackRecipes = () => {
+  return [
+    {
+      id: 1,
+      title: 'Zero-Waste Vegetable Stir Fry',
+      image: placeholderImages[0],
+      description: 'Use up leftover vegetables in this delicious, sustainable stir fry that reduces food waste.',
+      prepTime: 20,
+      servings: 4,
+      healthScore: 92,
+      tags: ['Vegetarian', 'Vegan', 'Quick'],
+      vegetarian: true,
+      vegan: true
+    },
+    {
+      id: 2,
+      title: 'Sustainable Lentil Curry',
+      image: placeholderImages[1],
+      description: 'A protein-rich, plant-based curry that\'s good for you and the planet.',
+      prepTime: 35,
+      servings: 6,
+      healthScore: 88,
+      tags: ['Vegan', 'Gluten-Free'],
+      vegetarian: true,
+      vegan: true
+    },
+    {
+      id: 3,
+      title: 'Healthy Quinoa Bowl',
+      image: placeholderImages[2],
+      description: 'A nutritious bowl packed with fresh vegetables and wholesome grains.',
+      prepTime: 25,
+      servings: 2,
+      healthScore: 95,
+      tags: ['Healthy', 'Vegetarian'],
+      vegetarian: true,
+      vegan: false
+    },
+    {
+      id: 4,
+      title: 'Green Goddess Salad',
+      image: placeholderImages[0],
+      description: 'Fresh and vibrant salad loaded with seasonal vegetables and herbs.',
+      prepTime: 15,
+      servings: 4,
+      healthScore: 90,
+      tags: ['Healthy', 'Vegetarian', 'Vegan'],
+      vegetarian: true,
+      vegan: true
+    },
+    {
+      id: 5,
+      title: 'Roasted Vegetable Medley',
+      image: placeholderImages[1],
+      description: 'Seasonal vegetables roasted to perfection with herbs and olive oil.',
+      prepTime: 30,
+      servings: 4,
+      healthScore: 87,
+      tags: ['Vegetarian', 'Vegan', 'Healthy'],
+      vegetarian: true,
+      vegan: true
+    }
+  ]
 }
 
-// Fetch recipes
+const filterRecipes = () => {
+  if (!cachedRecipes.value || cachedRecipes.value.length === 0) {
+    recipes.value = getFallbackRecipes()
+    return
+  }
+
+  let filtered = []
+  
+  switch (activeFilter.value) {
+    case 'vegetarian':
+      filtered = cachedRecipes.value.filter(recipe => 
+        recipe.vegetarian === true || recipe.tags?.some(tag => tag === 'Vegetarian')
+      )
+      break
+    case 'vegan':
+      filtered = cachedRecipes.value.filter(recipe => 
+        recipe.vegan === true || recipe.tags?.some(tag => tag === 'Vegan')
+      )
+      break
+    case 'healthy':
+      filtered = cachedRecipes.value.filter(recipe => 
+        recipe.healthScore >= 85 || recipe.tags?.some(tag => tag === 'Healthy')
+      )
+      break
+    default:
+      filtered = cachedRecipes.value
+  }
+
+  if (filtered.length === 0) {
+    recipes.value = getFallbackRecipes()
+  } else {
+    recipes.value = filtered
+  }
+  
+  currentRecipeIndex.value = 0
+}
+
+const setActiveFilter = (filterValue) => {
+  activeFilter.value = filterValue
+  filterRecipes()
+}
+
 const fetchRecipes = async () => {
+  if (recipesFetched.value) {
+    filterRecipes()
+    return
+  }
+
+  recipesFetched.value = true
+
+  if (!API_KEY) {
+    cachedRecipes.value = getFallbackRecipes()
+    filterRecipes()
+    isLoadingRecipes.value = false
+    return
+  }
+
   try {
     isLoadingRecipes.value = true
     recipesError.value = null
     
-    // Base URL
     const url = 'https://api.spoonacular.com/recipes/random'
-    
-    // Build params object
     const params = {
-      number: 1,
+      number: 3,
       apiKey: API_KEY
     }
     
-    // Apply filter tag
-    if (activeFilter.value === 'vegetarian') {
-      params.tags = 'vegetarian'
-    } else if (activeFilter.value === 'vegan') {
-      params.tags = 'vegan'
-    } else if (activeFilter.value === 'healthy') {
-      params.tags = 'vegetarian,healthy'
-    } else {
-      params.tags = 'vegetarian,healthy,sustainable'
-    }
-    
     const response = await axios.get(url, { params })
-    
     const data = response.data
     
-    // Check if we got recipes
-    if (!data.recipes || data.recipes.length === 0) {
-      throw new Error('No recipes returned from API')
+    if (data.status === 'failure' || data.message) {
+      throw new Error(data.message || 'API error')
     }
     
-    recipes.value = data.recipes.map((recipe, index) => ({
-      id: recipe.id,
-      title: recipe.title,
+    let recipesArray = null
+    if (Array.isArray(data)) {
+      recipesArray = data
+    } else if (data.recipes && Array.isArray(data.recipes)) {
+      recipesArray = data.recipes
+    } else if (data.results && Array.isArray(data.results)) {
+      recipesArray = data.results
+    }
+    
+    if (!recipesArray || recipesArray.length === 0) {
+      throw new Error('No recipes returned')
+    }
+    
+    cachedRecipes.value = recipesArray.map((recipe, index) => ({
+      id: recipe.id || index + 1000,
+      title: recipe.title || 'Delicious Recipe',
       image: recipe.image || placeholderImages[index % placeholderImages.length],
       description: recipe.summary?.replace(/<[^>]*>/g, '').substring(0, 150) + '...' || 'A delicious sustainable recipe',
       prepTime: recipe.readyInMinutes || 30,
       servings: recipe.servings || 4,
       healthScore: recipe.healthScore || 85,
+      vegetarian: recipe.vegetarian || false,
+      vegan: recipe.vegan || false,
       tags: [
         recipe.vegetarian && 'Vegetarian',
         recipe.vegan && 'Vegan',
         recipe.glutenFree && 'Gluten-Free',
-        recipe.dairyFree && 'Dairy-Free'
+        recipe.dairyFree && 'Dairy-Free',
+        recipe.healthScore >= 85 && 'Healthy'
       ].filter(Boolean)
     }))
     
+    recipesError.value = null
+    filterRecipes()
+    
   } catch (error) {
-    console.error('Error fetching recipes:', error)
-    recipesError.value = 'Unable to load recipes from API. Showing demo recipes instead.'
+    console.error('Error:', error)
     
-    // Get filter-specific fallback recipes
-    let fallbackRecipes = []
-    
-    if (activeFilter.value === 'vegetarian') {
-      fallbackRecipes = [
-        {
-          id: 1,
-          title: 'Zero-Waste Vegetable Stir Fry',
-          image: placeholderImages[0],
-          description: 'Use up leftover vegetables in this delicious, sustainable stir fry that reduces food waste.',
-          prepTime: 20,
-          servings: 4,
-          healthScore: 92,
-          tags: ['Vegetarian', 'Vegan', 'Quick']
-        },
-        {
-          id: 3,
-          title: 'Healthy Quinoa Bowl',
-          image: placeholderImages[2],
-          description: 'A nutritious bowl packed with fresh vegetables and wholesome grains.',
-          prepTime: 25,
-          servings: 2,
-          healthScore: 95,
-          tags: ['Healthy', 'Vegetarian']
-        }
-      ]
-    } else if (activeFilter.value === 'vegan') {
-      fallbackRecipes = [
-        {
-          id: 1,
-          title: 'Zero-Waste Vegetable Stir Fry',
-          image: placeholderImages[0],
-          description: 'Use up leftover vegetables in this delicious, sustainable stir fry that reduces food waste.',
-          prepTime: 20,
-          servings: 4,
-          healthScore: 92,
-          tags: ['Vegetarian', 'Vegan', 'Quick']
-        },
-        {
-          id: 2,
-          title: 'Sustainable Lentil Curry',
-          image: placeholderImages[1],
-          description: 'A protein-rich, plant-based curry that\'s good for you and the planet.',
-          prepTime: 35,
-          servings: 6,
-          healthScore: 88,
-          tags: ['Vegan', 'Gluten-Free']
-        }
-      ]
-    } else if (activeFilter.value === 'healthy') {
-      fallbackRecipes = [
-        {
-          id: 3,
-          title: 'Healthy Quinoa Bowl',
-          image: placeholderImages[2],
-          description: 'A nutritious bowl packed with fresh vegetables and wholesome grains.',
-          prepTime: 25,
-          servings: 2,
-          healthScore: 95,
-          tags: ['Healthy', 'Vegetarian']
-        },
-        {
-          id: 1,
-          title: 'Zero-Waste Vegetable Stir Fry',
-          image: placeholderImages[0],
-          description: 'Use up leftover vegetables in this delicious, sustainable stir fry that reduces food waste.',
-          prepTime: 20,
-          servings: 4,
-          healthScore: 92,
-          tags: ['Vegetarian', 'Vegan', 'Quick']
-        }
-      ]
+    if (error.response) {
+      const status = error.response.status
+      if (status === 402) {
+        recipesError.value = 'Quota exceeded'
+      } else if (status === 429) {
+        recipesError.value = 'Rate limit exceeded'
+      } else {
+        recipesError.value = `API error ${status}`
+      }
     } else {
-      // All recipes - show all fallbacks
-      fallbackRecipes = [
-        {
-          id: 1,
-          title: 'Zero-Waste Vegetable Stir Fry',
-          image: placeholderImages[0],
-          description: 'Use up leftover vegetables in this delicious, sustainable stir fry that reduces food waste.',
-          prepTime: 20,
-          servings: 4,
-          healthScore: 92,
-          tags: ['Vegetarian', 'Vegan', 'Quick']
-        },
-        {
-          id: 2,
-          title: 'Sustainable Lentil Curry',
-          image: placeholderImages[1],
-          description: 'A protein-rich, plant-based curry that\'s good for you and the planet.',
-          prepTime: 35,
-          servings: 6,
-          healthScore: 88,
-          tags: ['Vegan', 'Gluten-Free']
-        },
-        {
-          id: 3,
-          title: 'Healthy Quinoa Bowl',
-          image: placeholderImages[2],
-          description: 'A nutritious bowl packed with fresh vegetables and wholesome grains.',
-          prepTime: 25,
-          servings: 2,
-          healthScore: 95,
-          tags: ['Healthy', 'Vegetarian']
-        }
-      ]
+      recipesError.value = 'Failed to load recipes'
     }
     
-    recipes.value = fallbackRecipes
+    cachedRecipes.value = getFallbackRecipes()
+    filterRecipes()
   } finally {
     isLoadingRecipes.value = false
   }
@@ -703,28 +714,20 @@ const handleImageError = (event) => {
   event.target.style.display = 'none'
 }
 
-onMounted(() => {
-  // Load initial recipes
-  fetchRecipes()
-  
-  // Fetch active user count from Firebase
+onMounted(async () => {
+  await fetchRecipes()
   fetchActiveUserCount()
   
-  // Animate stats on mount
   nextTick(() => {
     animateStats()
   })
   
-  // Start auto-rotate after recipes are loaded
-  setTimeout(() => {
-    if (recipes.value.length > 1) {
-      recipeInterval = setInterval(() => {
-        nextRecipe()
-      }, 5000)
-    }
-  }, 1000)
+  if (recipes.value.length > 1) {
+    recipeInterval = setInterval(() => {
+      nextRecipe()
+    }, 5000)
+  }
   
-  // Auto-rotate testimonials every 6 seconds
   testimonialInterval = setInterval(() => {
     nextTestimonial()
   }, 6000)
@@ -737,18 +740,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.hover-success:hover {
-  color: #198754 !important;
-}
-
-.animate-number {
-  transition: all 0.3s ease;
-}
-
-.text-success-subtle {
-  color: rgba(255, 255, 255, 0.9);
-}
-
 .max-width {
   max-width: 800px;
 }
@@ -757,67 +748,16 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-.hvr-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hvr-lift:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-.badge {
-  font-size: 0.875rem;
-}
-
-/* Background gradient for landing page */
 .bg-gradient-landing {
-  background: linear-gradient(to bottom, #f0fdf4, #ffffff);
+  background: linear-gradient(to bottom, #f8f9fa, #ffffff);
 }
 
-/* Feature icon container */
 .feature-icon-container {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.feature-icon {
-  font-size: 1.75rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Recipe image container */
-.recipe-image-container {
-  min-height: 300px;
-}
-
-/* Recipe image wrapper for equal padding */
-.recipe-image-wrapper {
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.recipe-image-wrapper .ratio {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Placeholder icon */
-.placeholder-icon {
-  font-size: 4rem;
-}
-
-/* Recipe carousel arrows */
-.recipe-arrow {
-  z-index: 10;
 }
 
 .recipe-arrow-left {
@@ -828,86 +768,33 @@ onUnmounted(() => {
   margin-right: -20px;
 }
 
-/* Carousel dots */
 .carousel-dot {
   width: 40px;
   height: 8px;
-  opacity: 0.6;
-  transition: all 0.3s;
+  border-radius: 4px;
 }
 
-/* Testimonial dots */
 .testimonial-dot {
   width: 40px;
   height: 8px;
   border-radius: 4px;
-  opacity: 0.5;
 }
 
-/* Step number horizontal oval */
 .step-number {
+  width: 60px;
+  height: 60px;
   font-size: 1.5rem;
-  width: 120px;
-  height: 50px;
 }
 
-/* Mobile responsive styles starting from 575px */
-@media (max-width: 991.98px) {
-  .card-body {
-    padding: 1.5rem !important;
-  }
-  
-  h3 {
-    font-size: 1.5rem !important;
-  }
+.placeholder-icon {
+  font-size: 4rem;
 }
 
-@media (min-width: 576px) {
-  .recipe-carousel-btn {
-    display: flex !important;
-  }
-}
-
-@media (max-width: 575.98px) {
-  /* Hide navigation arrows on mobile */
+@media (max-width: 576px) {
   .recipe-carousel-btn {
     display: none !important;
   }
   
-  /* Stack recipe info boxes vertically on very small screens */
-  .recipe-info-box {
-    margin-bottom: 0.5rem;
-  }
-  
-  /* Adjust font sizes for mobile */
-  .display-4 {
-    font-size: 2rem !important;
-  }
-  
-  .display-2 {
-    font-size: 2.5rem !important;
-  }
-  
-  .lead {
-    font-size: 1.1rem !important;
-  }
-  
-  /* Adjust padding for mobile sections */
-  section {
-    padding-top: 3rem !important;
-    padding-bottom: 3rem !important;
-  }
-  
-  /* Make info boxes smaller on mobile */
-  .bg-success-subtle {
-    padding: 0.75rem !important;
-  }
-  
-  .h5 {
-    font-size: 1.1rem !important;
-  }
-  
-  /* Adjust carousel dots size on mobile */
   .carousel-dot,
   .testimonial-dot {
     width: 30px !important;
