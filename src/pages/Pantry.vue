@@ -265,7 +265,8 @@ export default {
                 },
 
         addItemRow() {
-            this.multipleItems.push(this.createBlankItem());
+            // You are dynamically loading the item cards thus when itemCount++ it adds one, by pushing another its adding +2 everytime
+            //this.multipleItems.push(this.createBlankItem());
             this.itemCount++; //Sync with submit counter
         },
 
