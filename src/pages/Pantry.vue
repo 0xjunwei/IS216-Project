@@ -136,10 +136,10 @@ export default {
                 if (this.multipleItems.length === 0) return true; 
                 // Check if any items is not fulfilled
                 return this.multipleItems.some(item => 
-                    !item.name.trim() || !item.itemExpiry || !item.category || !item.quantity || !item.unit
+                    !item.name.trim() || !item.itemExpiry || !item.category || !item.quantity || !item.unit || item.quantity <= 0
                 );
             } else {
-                return !this.newItemName.trim() || !this.itemExpiry || !this.category || !this.quantity || !this.unit;
+                return !this.newItemName.trim() || !this.itemExpiry || !this.category || !this.quantity || !this.unit || this.quantity < 0;
             }
         }
         },
