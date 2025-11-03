@@ -303,7 +303,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { db } from '../js/config.js'
-import { collection, getDocs, query } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 
 const router = useRouter()
 
