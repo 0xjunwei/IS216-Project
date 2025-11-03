@@ -659,13 +659,23 @@ function computeSustainabilityScore(recipe, expiringIngredients) {
     let usesExpiringCount = 0;
     for (let i = 0; i < recipe.usedIngredients.length; i++) {
       const ingredient = recipe.usedIngredients[i];
+      const ingredientName = ingredient.name.toLowerCase();
+      
       for (let j = 0; j < expiringIngredients.length; j++) {
-        if (ingredient.name.toLowerCase() === expiringIngredients[j].name.toLowerCase()) {
+        const expiringName = expiringIngredients[j].name.toLowerCase();
+        // Use flexible matching, realized not matching in compute
+        if (ingredientName === expiringName || 
+            ingredientName.includes(expiringName) || 
+            expiringName.includes(ingredientName)) {
           usesExpiringCount++;
           break;
         }
       }
     }
+    console.log("expiring count:" , usesExpiringCount);
+    console.log("ingredient length: " , expiringIngredients.length);
+    console.log("expiring ingredients:", expiringIngredients.map(e => e.name));
+    console.log("recipe used ingredients:", recipe.usedIngredients.map(i => i.name));
     expiringBonus = usesExpiringCount / expiringIngredients.length;
   }
   
@@ -718,10 +728,9 @@ async function findRecipes() {
     
     const recipesData = response.data;
     
-    let expiringIngredients = [];
-    if (prioritizeExpiring.value) {
-      expiringIngredients = getExpiringIngredients();
-    }
+    // Always get expiring ingredients for sustainability score calculation
+    // The prioritizeExpiring checkbox is only for sorting, not for score calculation
+    const expiringIngredients = getExpiringIngredients();
 
     const recipeDetails = [];
     for (let i = 0; i < recipesData.length; i++) {
