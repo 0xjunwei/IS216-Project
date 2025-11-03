@@ -275,6 +275,17 @@ export default {
             this.itemCount--; //Sync with submit
         },
 
+        async removeItem(itemToRemove) {
+            const index = this.pantry.findIndex(item => 
+                item.name === itemToRemove.name && item.expiry === itemToRemove.expiry
+            );
+            
+            if (index > -1) {
+                this.pantry.splice(index, 1);
+                await this.savePantry(); 
+            }
+        },
+
         checkFreshness(expiryDate) {
             const today = new Date();
             today.setHours(0, 0, 0, 0); 
