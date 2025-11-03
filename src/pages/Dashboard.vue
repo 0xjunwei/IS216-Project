@@ -1,47 +1,63 @@
 <template>
-  <div class="dashboard-container min-vh-100">
+  <div class="dashboard-container bg-light min-vh-100">
     <div class="container py-5">
-      <h2 class="dashboard-title text-center mb-2">Food Waste Dashboard</h2>
-      <p class="dashboard-subtitle text-center mb-5">
+      <h2 class="fw-bold text-success text-center mb-2">Food Waste Dashboard</h2>
+      <p class="text-muted text-center mb-5">
         Track your CO₂ savings, money saved, and food waste reduction.
       </p>
 
       <!-- Stats Section -->
-      <div class="stats-grid row g-4 mb-5">
+      <div class="row g-4 mb-5 text-center">
         <div v-for="stat in stats" :key="stat.label" class="col-12 col-md-4">
-          <div class="stat-card text-center">
-            <h3 class="stat-label">{{ stat.label }}</h3>
-            <p class="stat-value">{{ stat.value }}</p>
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-4">
+              <h5
+                class="fw-semibold"
+                :class="{
+                  'text-success': stat.label.includes('Saved') || stat.label.includes('Avoided'),
+                  'text-danger': stat.label.includes('Wasted'),
+                }"
+              >
+                {{ stat.label }}
+              </h5>
+              <p
+                class="display-6 fw-bold mb-0"
+                :class="{
+                  'text-success': stat.label.includes('Saved') || stat.label.includes('Avoided'),
+                  'text-danger': stat.label.includes('Wasted'),
+                }"
+              >
+                {{ stat.value }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Chart Section -->
-      <div class="chart-card text-center">
-        <h4 class="chart-title">Weekly Food Waste (kg)</h4>
-        <div class="chart-container">
+      <div class="card border-0 shadow-sm p-4">
+        <h5 class="fw-semibold text-danger text-center mb-3">Weekly Food Waste (kg)</h5>
+        <div class="chart-container mx-auto" style="height:350px; max-width:900px;">
           <canvas id="wasteChart" class="chart-canvas"></canvas>
         </div>
-        <p class="chart-text mt-3">
+        <p class="text-muted text-center mt-3">
           Each bar shows how much food was wasted (expired) during that week.
         </p>
 
         <!-- Summary -->
-        <div class="summary-text mt-3">
-          <p class="summary-item wasted">
-            <strong>Food Wasted:</strong> {{ totalWasted }} kg
-          </p>
-          <p class="summary-item saved">
-            <strong>Food Saved:</strong> {{ totalSaved }} kg
-          </p>
-          <p class="summary-item average" v-if="globalAverageWaste > 0">
-            <strong>Global Average Food Waste:</strong> {{ globalAverageWaste }} kg
+        <div class="text-center mt-4">
+          <p class="mb-1 fw-bold text-danger">🍽️ Food Wasted: {{ totalWasted }} kg</p>
+          <p class="mb-1 fw-bold text-success">🥬 Food Saved: {{ totalSaved }} kg</p>
+          <p v-if="globalAverageWaste > 0" class="text-secondary fw-semibold">
+            🌍 Global Average Waste: {{ globalAverageWaste }} kg
           </p>
         </div>
 
-        <button class="refresh-btn mt-4" @click="refreshData">
-          <i class="fas fa-sync-alt"></i> Refresh Data
-        </button>
+        <div class="text-center mt-4">
+          <button class="btn btn-success px-4" @click="refreshData">
+            <i class="fas fa-sync-alt me-2"></i>Refresh Data
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -54,13 +70,10 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, doc, onSnapshot, getDocs } from "firebase/firestore";
 import { auth, db } from "../js/config";
 
-/* -------------------------------------------------------------
-   Reactive variables
-------------------------------------------------------------- */
 const stats = ref([
   { label: "CO₂ Saved", value: "0.00 kg" },
   { label: "Money Saved", value: "$0.00" },
-  { label: "Food Waste Avoided", value: "0.00 kg" },
+  { label: "Food Wasted", value: "0.00 kg" },
 ]);
 const totalWasted = ref("0.00");
 const totalSaved = ref("0.00");
@@ -149,10 +162,10 @@ function renderChart(weeklyWaste, weeklyItems, weekLabels) {
   const avg = parseFloat(globalAverageWaste.value) || 0;
   const avgLine = Array(weeklyWaste.length).fill(avg);
 
-  // Deep red gradient
+  // Red gradient for food waste
   const gradient = ctx.getContext("2d").createLinearGradient(0, 0, 0, 350);
-  gradient.addColorStop(0, "#c0392b");
-  gradient.addColorStop(1, "#922b21");
+  gradient.addColorStop(0, "#e74c3c");
+  gradient.addColorStop(1, "#c0392b");
 
   wasteChart = new Chart(ctx, {
     type: "bar",
@@ -165,7 +178,7 @@ function renderChart(weeklyWaste, weeklyItems, weekLabels) {
           backgroundColor: gradient,
           borderRadius: 10,
           barThickness: 45,
-          borderColor: "#6e1d12",
+          borderColor: "#922b21",
           borderWidth: 1.5,
           order: 1,
         },
@@ -173,7 +186,7 @@ function renderChart(weeklyWaste, weeklyItems, weekLabels) {
           label: "Global Average (kg)",
           data: avgLine,
           type: "line",
-          borderColor: "#1b2631",
+          borderColor: "#6c757d",
           borderWidth: 2,
           borderDash: [6, 4],
           pointRadius: 0,
@@ -184,44 +197,22 @@ function renderChart(weeklyWaste, weeklyItems, weekLabels) {
     },
     options: {
       maintainAspectRatio: false,
-      animation: { duration: 1200, easing: "easeOutQuart" },
       plugins: {
         legend: {
           position: "top",
           labels: { color: "#333", usePointStyle: true, padding: 15 },
         },
-        tooltip: {
-          backgroundColor: "rgba(0, 0, 0, 0.85)",
-          titleColor: "#fff",
-          bodyColor: "#fff",
-          callbacks: {
-            label: function (ctx) {
-              if (ctx.dataset.label === "Global Average (kg)") {
-                return `Global Average: ${ctx.parsed.y.toFixed(2)} kg`;
-              }
-              const weekIndex = ctx.dataIndex;
-              const items = weeklyItems[weekIndex] || [];
-              if (!items.length) return "No expired items";
-              return [
-                `${ctx.parsed.y.toFixed(2)} kg wasted`,
-                ...items.map(
-                  (i) => `• ${i.name} (${i.qty} ${i.unit || "pcs"})`
-                ),
-              ];
-            },
-          },
-        },
       },
       scales: {
         x: {
-          ticks: { color: "#333", font: { size: 13 } },
+          ticks: { color: "#495057", font: { size: 13 } },
           grid: { color: "rgba(0,0,0,0.05)" },
         },
         y: {
           beginAtZero: true,
           min: 0,
           suggestedMax: Math.max(...weeklyWaste, avg, 0.5) + 0.5,
-          ticks: { color: "#333" },
+          ticks: { color: "#495057" },
           grid: { color: "rgba(0,0,0,0.08)" },
         },
       },
@@ -284,7 +275,7 @@ async function updateStats(data) {
   stats.value = [
     { label: "CO₂ Saved", value: `${co2Saved} kg` },
     { label: "Money Saved", value: `$${moneySaved}` },
-    { label: "Food Waste Avoided", value: `${savedKg} kg` },
+    { label: "Food Wasted", value: `${wastedKg} kg` },
   ];
 
   totalWasted.value = wastedKg;
@@ -330,86 +321,23 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard-container {
-  background: linear-gradient(to bottom right, #f3fff5, #e6fff0);
+  background-color: #f8f9fa;
   font-family: "Inter", "Segoe UI", sans-serif;
   color: #2c3e50;
 }
-.dashboard-title {
-  font-weight: 700;
-  color: #1a7940;
-  font-size: 2rem;
+
+.card {
+  border-radius: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.dashboard-subtitle {
-  font-size: 1rem;
-  color: #5f6d63;
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
-.stat-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 2rem 1rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-}
-.stat-label {
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: #1a7940;
-}
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #27ae60;
-}
-.chart-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 2.5rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-}
-.chart-title {
-  font-weight: 600;
-  color: #b03a2e;
-  margin-bottom: 1rem;
-}
-.chart-container {
-  height: 340px;
-  position: relative;
-}
+
 .chart-canvas {
   width: 100%;
   height: 100%;
-}
-.chart-text {
-  font-size: 0.95rem;
-  color: #2f3e46;
-}
-.summary-text {
-  margin-top: 1rem;
-  font-size: 1rem;
-}
-.summary-item {
-  margin: 0.3rem 0;
-}
-.summary-item.wasted {
-  color: #c0392b;
-}
-.summary-item.saved {
-  color: #27ae60;
-}
-.summary-item.average {
-  color: #34495e;
-}
-.refresh-btn {
-  background: #27ae60;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.2rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-.refresh-btn:hover {
-  background: #1e8449;
-  transform: scale(1.03);
 }
 </style>
