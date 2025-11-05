@@ -126,7 +126,7 @@
     <footer class="bg-white border-top py-3 mt-auto">
       <div class="container-fluid">
         <p class="text-center text-muted small">
-          &copy; 2025 FoodSaver. All rights reserved.
+          &copy; 2025 FoodSaver - Built by WAD2 G1 Team 6.
         </p>
       </div>
     </footer>

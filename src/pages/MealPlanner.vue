@@ -312,7 +312,7 @@ const availableMeals = ref([
   {
     id: 2,
     title: "Vegetarian Pasta",
-    image: "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=300&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1708989175833-9456d81ca179?w=300&h=200&fit=crop",
     readyInMinutes: 20,
     sustainabilityScore: 92,
     zeroWaste: true,
