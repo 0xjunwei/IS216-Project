@@ -183,7 +183,11 @@
                     </div>
                   </div>
                   
-                  <button class="btn btn-success w-100 py-2 rounded-3 fw-semibold">
+                  <button 
+                    @click="viewFullRecipe"
+                    class="btn btn-success w-100 py-2 rounded-3 fw-semibold"
+                    :disabled="!recipes[currentRecipeIndex]?.sourceUrl"
+                  >
                     <i class="bi bi-arrow-right me-2"></i>
                     View Full Recipe
                   </button>
@@ -649,6 +653,7 @@ const fetchRecipes = async () => {
       healthScore: recipe.healthScore || 85,
       vegetarian: recipe.vegetarian || false,
       vegan: recipe.vegan || false,
+      sourceUrl: recipe.sourceUrl || recipe.spoonacularSourceUrl || null,
       tags: [
         recipe.vegetarian && 'Vegetarian',
         recipe.vegan && 'Vegan',
@@ -717,6 +722,16 @@ function handleButtonClick() {
     router.push('/dashboard')
   } else {
     router.push('/login')
+  }
+}
+
+function viewFullRecipe() {
+  const currentRecipe = recipes.value[currentRecipeIndex.value]
+  if (currentRecipe?.sourceUrl) {
+    window.open(currentRecipe.sourceUrl, '_blank', 'noopener,noreferrer')
+  } else {
+    // Fallback to recipes page if no URL available
+    router.push('/recipe')
   }
 }
 

@@ -219,11 +219,11 @@ export default {
                 this.pantry.push(newItem);
                 itemsAdded = true;
             }
-
+            this.closeAddItemModal();
             if (itemsAdded) {
                 await this.savePantry();
             }
-            this.closeAddItemModal();
+            
         },
 
         closeAddItemModal() {
