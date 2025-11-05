@@ -14,8 +14,8 @@
             A simple app to help you plan meals and reduce food waste. Track what's in your pantry and get recipe suggestions.
           </p>
           <div class="d-flex flex-column flex-sm-row gap-3 mb-4">
-            <button @click="goToLogin" class="btn btn-success btn-lg px-5 py-3 rounded-3 shadow-sm">
-              Sign Up Now
+            <button @click="handleButtonClick" class="btn btn-success btn-lg px-5 py-3 rounded-3 shadow-sm">
+              {{ isLoggedIn ? "Let's get started!" : "Sign Up Now" }}
             </button>
           </div>
           
@@ -302,8 +302,9 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { db } from '../js/config.js'
+import { db, auth } from '../js/config.js'
 import { collection, getDocs } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const router = useRouter()
 
@@ -311,6 +312,7 @@ const router = useRouter()
 const API_KEY = import.meta.env.VITE_SPOONACULAR_KEY
 const statRefs = ref([])
 const activeUserCount = ref(0)
+const isLoggedIn = ref(false)
 
 // Recipes state
 const recipes = ref([])
@@ -419,6 +421,7 @@ const steps = ref([
 
 let recipeInterval = null
 let testimonialInterval = null
+let authUnsubscribe = null
 
 const fetchActiveUserCount = async () => {
   try {
@@ -709,12 +712,25 @@ function goToLogin() {
   router.push('/login')
 }
 
+function handleButtonClick() {
+  if (isLoggedIn.value) {
+    router.push('/dashboard')
+  } else {
+    router.push('/login')
+  }
+}
+
 const handleImageError = (event) => {
   console.error('Image failed to load:', event.target.src)
   event.target.style.display = 'none'
 }
 
 onMounted(async () => {
+  // Check authentication status
+  authUnsubscribe = onAuthStateChanged(auth, (user) => {
+    isLoggedIn.value = !!user
+  })
+  
   await fetchRecipes()
   fetchActiveUserCount()
   
@@ -736,6 +752,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (recipeInterval) clearInterval(recipeInterval)
   if (testimonialInterval) clearInterval(testimonialInterval)
+  if (authUnsubscribe) authUnsubscribe()
 })
 </script>
 
